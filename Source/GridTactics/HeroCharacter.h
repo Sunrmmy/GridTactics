@@ -10,7 +10,6 @@ class UCameraComponent;
 class USpringArmComponent;
 class UInputMappingContext;
 class UInputAction;
-class AGridMapManager;
 struct FInputActionValue;
 UCLASS()
 class GRIDTACTICS_API AHeroCharacter : public ACharacter
@@ -34,8 +33,6 @@ private:
 	bool bIsMoving = false;
 	float MoveSpeed = 300.0f; // cm/s
 
-	mutable AGridMapManager* CachedGridManager = nullptr;
-
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -43,18 +40,14 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-
 	// Enhanced Input 响应函数
 	void OnMove(const FInputActionValue& Value);
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* IMC_Hero;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* IA_Move;
 
-	AGridMapManager* GetGridMapManager();
 
 	// 世界坐标与网格坐标转换
 	bool WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) const;

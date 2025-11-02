@@ -9,8 +9,8 @@ void UGridMapData::InitializeGrid()
     GridCells.SetNumZeroed(MapWidth * MapHeight);
 
     // 默认全设为 Walkable
-    for (EGridCellType Cell : GridCells)
+    for (int32 i = 0; i < GridCells.Num(); ++i)
     {
-        Cell = EGridCellType::Walkable;
+        GridCells[i] = EGridCellType::Walkable;
     }
 }

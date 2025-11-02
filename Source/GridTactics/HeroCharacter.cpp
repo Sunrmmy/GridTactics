@@ -4,13 +4,15 @@
 #include "HeroCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "GridMapManager.h"
+#include "GridCell.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
+#include "Engine/OverlapResult.h"
 
 // Sets default values
 AHeroCharacter::AHeroCharacter()
@@ -41,6 +43,13 @@ AHeroCharacter::AHeroCharacter()
 void AHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (!IMC_Hero || !IA_Move)
+	{
+		UE_LOG(LogTemp, Error, TEXT("IMC_Hero or IA_Move is NULL! Check HeroCharacter blueprint settings."));
+		return;
+	}
+
 	// 绑定 Enhanced Input
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
@@ -59,16 +68,24 @@ void AHeroCharacter::Tick(float DeltaTime)
 	if (bIsMoving)
 	{
 		FVector Current = GetActorLocation();
-		float Dist = FVector::Distance(Current, TargetLocation);
-		if (Dist < 10.0f)
+		FVector Target2D = FVector(TargetLocation.X, TargetLocation.Y, Current.Z); // 保持当前高度
+
+		float Dist2D = FVector::DistXY(Current, TargetLocation);
+		float MoveStep = MoveSpeed * DeltaTime;
+
+		// 如果下一步会越过目标，直接吸附
+		if (Dist2D <= MoveStep)
 		{
-			SetActorLocation(TargetLocation);
+			SetActorLocation(Target2D);
 			bIsMoving = false;
+			UE_LOG(LogTemp, Warning, TEXT("Snapped to target"));
 		}
 		else
 		{
-			FVector Dir = (TargetLocation - Current).GetSafeNormal();
-			SetActorLocation(Current + Dir * MoveSpeed * DeltaTime);
+			// 向目标水平移动
+			FVector Dir = (Target2D - Current).GetSafeNormal();
+			FVector NewLocation = Current + Dir * MoveStep;
+			SetActorLocation(NewLocation);
 		}
 	}
 }
@@ -78,29 +95,18 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		// 绑定IA_Move到OnMove函数
+		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroCharacter::OnMove);
+	}
 }
 
-// 获取 GridMapManager 实例
-AGridMapManager* AHeroCharacter::GetGridMapManager()
-{
-	if (CachedGridManager == nullptr)
-	{
-		if (UWorld* World = GetWorld())
-		{
-			CachedGridManager = Cast<AGridMapManager>(
-				UGameplayStatics::GetActorOfClass(World, AGridMapManager::StaticClass())
-			);
-			if (CachedGridManager == nullptr)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("No AGridMapManager found in world!"));
-			}
-		}
-	}
-	return CachedGridManager;
-}
 
 void AHeroCharacter::OnMove(const FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Log, TEXT("OnMove triggered"));
+
 	if (bIsMoving) return;
 	FVector2D MoveVector = Value.Get<FVector2D>();
 	if (MoveVector.IsNearlyZero()) return;
@@ -111,8 +117,6 @@ void AHeroCharacter::OnMove(const FInputActionValue& Value)
 	int32 DeltaY = FMath::RoundToInt(MoveVector.Y);
 	// 防止对角线移动
 	if (FMath::Abs(DeltaX) == 1 && FMath::Abs(DeltaY) == 1) {
-		///////////////////////
-
 		return;
 	}
 	if (DeltaX != 0 || DeltaY != 0) {
@@ -122,28 +126,64 @@ void AHeroCharacter::OnMove(const FInputActionValue& Value)
 
 void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 {
+	UE_LOG(LogTemp, Warning, TEXT("CallCheck: bIsMoving = %s"), bIsMoving ? TEXT("TRUE") : TEXT("FALSE"));
+	if (bIsMoving) return;
+
+
 	int32 CurrentX, CurrentY;
 	GetCurrentGrid(CurrentX, CurrentY);
-
 	int32 TargetX = CurrentX + DeltaX;
 	int32 TargetY = CurrentY + DeltaY;
 
-	AGridMapManager* Manager = GetGridMapManager();
-	if (!Manager)
+	// 转换为目标世界坐标
+	FVector TargetWorld = GridToWorld(TargetX, TargetY);
+	
+	// 使用小范围球形重叠检测（半径略小于格子尺寸，避免误触相邻格）
+	const float DetectionRadius = GridSizeCM * 0.4f;
+	const FVector DetectionOrigin = TargetWorld + FVector(0, 0, 10.0f); // 抬高避免穿地
+	// 可视化调试球体
+	DrawDebugSphere(GetWorld(), DetectionOrigin, DetectionRadius, 12, FColor::Red, false, 2.0f);
+
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.bReturnPhysicalMaterial = false;
+	QueryParams.AddIgnoredActor(this); // 忽略自身
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);	// 匹配 GridCell 的 ObjectType
+
+
+	TArray<FOverlapResult> OverlapResults;
+	bool bHasOverlap = GetWorld()->OverlapMultiByObjectType(
+		OverlapResults,
+		DetectionOrigin,
+		FQuat::Identity,
+		ObjectQueryParams, // 检测所有对象类型
+		FCollisionShape::MakeSphere(DetectionRadius),
+		QueryParams
+	);
+
+	// 检查是否有可行走的格子
+	bool bTargetWalkable = false;
+	UE_LOG(LogTemp, Warning, TEXT("Overlap detected %d results"), OverlapResults.Num());
+	for (const FOverlapResult& Result : OverlapResults)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GridMapManager not found!"));
+		UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *Result.GetActor()->GetName());
+		AGridCell* GridCell = Cast<AGridCell>(Result.GetActor());
+		if (GridCell && GridCell->IsWalkable())
+		{
+			bTargetWalkable = true;
+			break;
+		}
+	}
+
+	if (!bTargetWalkable)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("Target grid (%d, %d) is blocked or not found."), TargetX, TargetY);
 		return;
 	}
 
-	if (!Manager->IsWalkable(TargetX, TargetY))
-	{
-		return; // blocked
-	}
-
-	TargetLocation = GridToWorld(TargetX, TargetY);
+	TargetLocation = TargetWorld;
 	bIsMoving = true;
-
-	// 使角色朝向移动方向
 	if (DeltaX != 0 || DeltaY != 0)
 	{
 		FRotator NewRot = UKismetMathLibrary::MakeRotFromX(FVector(DeltaX, DeltaY, 0));
@@ -162,7 +202,7 @@ bool AHeroCharacter::WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) con
 
 FVector AHeroCharacter::GridToWorld(int32 X, int32 Y) const
 {
-	return FVector(X * GridSizeCM, Y * GridSizeCM, GetActorLocation().Z);
+	return FVector(X * GridSizeCM, Y * GridSizeCM, 0.0f);
 }
 
 void AHeroCharacter::GetCurrentGrid(int32& OutX, int32& OutY) const

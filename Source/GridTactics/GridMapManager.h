@@ -29,14 +29,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void LoadMapData();
 
+	// 在编辑器中显示调试网格（开关）
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bShowDebugGrid = true;
+
 protected:
 	// 在编辑器中指定要加载的地图数据
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid")
 	TSoftObjectPtr<UGridMapData> MapDataAsset;		// 使用 TSoftObjectPtr 是为了避免硬引用，支持按需加载
 
+// 绘制编辑器调试用的可视化网格
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	void DrawDebugGrid();
+#endif
+
 private:
 	// 缓存解析后的二维地图Grid2D[Y][X]（提升查询效率）
 	TArray<TArray<EGridCellType>> Grid2D;
+
+	float CachedGridSize = 100.0f;
 
 	// 当前地图尺寸
 	int32 MapWidth = 0;
