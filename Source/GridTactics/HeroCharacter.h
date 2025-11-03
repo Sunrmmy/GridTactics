@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class AGridTacticsPlayerState;
 UCLASS()
 class GRIDTACTICS_API AHeroCharacter : public ACharacter
 {
@@ -25,13 +26,30 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// 用于显示玩家状态的UI控件蓝图类
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UUserWidget> PlayerHUDClass;
+
+	// 创建出的UI控件实例
+	UPROPERTY()
+	TObjectPtr<class UUserWidget> PlayerHUD;
+
 private:
 
 	// 移动参数
 	float GridSizeCM = 100.0f; // 1m = 100cm
 	FVector TargetLocation;
 	bool bIsMoving = false;
-	float MoveSpeed = 300.0f; // cm/s
+
+	UPROPERTY()
+	AGridTacticsPlayerState* GTPlayerState;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float BaseMoveSpeed = 300.0f; // cm/s
+
+	UFUNCTION(BlueprintCallable, Category = "Character")
+	AGridTacticsPlayerState* GetGridTacticsPlayerState() const;
 
 public:
 	// Called every frame

@@ -2,6 +2,8 @@
 
 
 #include "HeroCharacter.h"
+#include "GridTacticsPlayerState.h"
+#include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GridCell.h"
@@ -36,13 +38,15 @@ AHeroCharacter::AHeroCharacter()
 	Camera->bUsePawnControlRotation = false;	// 摄像机不相对于弹簧臂旋转
 
 	GridSizeCM = 100.0f; // 1m
-	MoveSpeed = 300.0f;  // 3m/s
 }
 
 // Called when the game starts or when spawned
 void AHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 缓存PlayerState的引用
+	GTPlayerState = GetPlayerState<AGridTacticsPlayerState>();
 
 	if (!IMC_Hero || !IA_Move)
 	{
@@ -57,6 +61,16 @@ void AHeroCharacter::BeginPlay()
 		{
 			Subsystem->AddMappingContext(IMC_Hero, 0);
 		}
+
+		// 创建并显示UI
+		if (PlayerHUDClass && IsLocallyControlled())
+		{
+			PlayerHUD = CreateWidget<UUserWidget>(PlayerController, PlayerHUDClass);
+			if (PlayerHUD)
+			{
+				PlayerHUD->AddToViewport();
+			}
+		}
 	}
 }
 
@@ -65,13 +79,27 @@ void AHeroCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (GTPlayerState) 
+	{
+		GTPlayerState->UpdateAttributes(DeltaTime);
+	}
+
 	if (bIsMoving)
 	{
 		FVector Current = GetActorLocation();
 		FVector Target2D = FVector(TargetLocation.X, TargetLocation.Y, Current.Z); // 保持当前高度
 
 		float Dist2D = FVector::DistXY(Current, TargetLocation);
-		float MoveStep = MoveSpeed * DeltaTime;
+		
+		// 从PlayerState获取移动速度
+		float CurrentMoveSpeed = BaseMoveSpeed; // 应该从PlayerState获取修改后的值
+		// 注意：GetModifiedAttributeValue需要基础值，我们在这里提供
+		// if (GTPlayerState) {
+		//     CurrentMoveSpeed = GTPlayerState->GetModifiedAttributeValue(EAttributeType::MoveSpeed, BaseMoveSpeed);
+		// }
+		// 为了简化，我们暂时直接使用基础速度。上面的逻辑可以后续在PlayerState中完善。
+
+		float MoveStep = CurrentMoveSpeed * DeltaTime;
 
 		// 如果下一步会越过目标，直接吸附
 		if (Dist2D <= MoveStep)
@@ -128,7 +156,14 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 {
 	UE_LOG(LogTemp, Warning, TEXT("CallCheck: bIsMoving = %s"), bIsMoving ? TEXT("TRUE") : TEXT("FALSE"));
 	if (bIsMoving) return;
+	if (!GTPlayerState) return;
 
+	// 检查体力
+	if (GTPlayerState->GetStamina() < 1.0f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not enough stamina to move. Stamina: %f"), GTPlayerState->GetStamina());
+		return;
+	}
 
 	int32 CurrentX, CurrentY;
 	GetCurrentGrid(CurrentX, CurrentY);
@@ -182,6 +217,9 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 		return;
 	}
 
+	// 消耗体力并开始移动
+	GTPlayerState->ConsumeStamina(1.0f);
+	UE_LOG(LogTemp, Log, TEXT("Moved. Stamina left: %f"), GTPlayerState->GetStamina());
 	TargetLocation = TargetWorld;
 	bIsMoving = true;
 	if (DeltaX != 0 || DeltaY != 0)
@@ -208,4 +246,9 @@ FVector AHeroCharacter::GridToWorld(int32 X, int32 Y) const
 void AHeroCharacter::GetCurrentGrid(int32& OutX, int32& OutY) const
 {
 	WorldToGrid(GetActorLocation(), OutX, OutY);
+}
+
+AGridTacticsPlayerState* AHeroCharacter::GetGridTacticsPlayerState() const
+{
+	return GTPlayerState;
 }
