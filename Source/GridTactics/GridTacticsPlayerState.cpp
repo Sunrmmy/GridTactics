@@ -2,6 +2,7 @@
 
 
 #include "GridTacticsPlayerState.h"
+#include "HeroCharacter.h"
 
 AGridTacticsPlayerState::AGridTacticsPlayerState()
 {
@@ -50,13 +51,13 @@ float AGridTacticsPlayerState::GetArmor() const
 
 float AGridTacticsPlayerState::GetMoveSpeed() const
 {
-	// 注意：移动速度的基础值来自Pawn，这里只应用修改器
-	// 我们将在HeroCharacter中获取基础值并传入
-	if (GetPawn())
+	// 获取此PlayerState对应的Pawn
+	if (const AHeroCharacter* HeroCharacter = Cast<AHeroCharacter>(GetPawn()))
 	{
-		// 这是一个示例，实际我们会在Character中处理
+		// 从角色获取基础速度，然后计算修改后的值
+		return GetModifiedAttributeValue(EAttributeType::MoveSpeed, HeroCharacter->GetBaseMoveSpeed());
 	}
-	return 0.f; // 仅作占位
+	return 0.0f;
 }
 
 void AGridTacticsPlayerState::ConsumeStamina(float Amount)

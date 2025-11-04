@@ -29,14 +29,16 @@ protected:
 	// 角色移动旋转的目标方向
 	FRotator TargetRotation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float BaseMoveSpeed = 300.0f; // cm/s
 
 	// 用于显示玩家状态的UI控件蓝图类
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UUserWidget> PlayerHUDClass;
+	TSubclassOf<class UHUDWidget> PlayerHUDClass;
 
 	// 创建出的UI控件实例
 	UPROPERTY()
-	TObjectPtr<class UUserWidget> PlayerHUD;
+	TObjectPtr<class UHUDWidget> PlayerHUD;
 
 private:
 
@@ -49,9 +51,6 @@ private:
 	AGridTacticsPlayerState* GTPlayerState;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
-	float BaseMoveSpeed = 300.0f; // cm/s
-
 	UFUNCTION(BlueprintCallable, Category = "Character")
 	AGridTacticsPlayerState* GetGridTacticsPlayerState() const;
 
@@ -80,6 +79,10 @@ public:
 
 	// 尝试向某一方向移动一格
 	void TryMoveOneStep(int32 DeltaX, int32 DeltaY);
+
+	// 获取角色的基础移动速度
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	float GetBaseMoveSpeed() const { return BaseMoveSpeed; }
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))

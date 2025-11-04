@@ -101,6 +101,8 @@ public:
 	//Attribute Setters/Consumers Begin
 	void ConsumeStamina(float Amount);
 
+	float GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -135,5 +137,4 @@ private:
 	TArray<FAttributeModifier> ActiveModifiers;
 
 	void UpdateModifiers(float DeltaTime);
-	float GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const;
 };

@@ -4,6 +4,7 @@
 #include "HeroCharacter.h"
 #include "GridTacticsPlayerState.h"
 #include "Blueprint/UserWidget.h"
+#include "HUDWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GridCell.h"
@@ -76,7 +77,7 @@ void AHeroCharacter::BeginPlay()
 		// 创建并显示UI
 		if (PlayerHUDClass && IsLocallyControlled())
 		{
-			PlayerHUD = CreateWidget<UUserWidget>(PlayerController, PlayerHUDClass);
+			PlayerHUD = CreateWidget<UHUDWidget>(PlayerController, PlayerHUDClass);
 			if (PlayerHUD)
 			{
 				PlayerHUD->AddToViewport();
@@ -111,13 +112,10 @@ void AHeroCharacter::Tick(float DeltaTime)
 
 		float Dist2D = FVector::DistXY(Current, TargetLocation);
 		
-		// 从PlayerState获取移动速度
-		float CurrentMoveSpeed = BaseMoveSpeed; // 应该从PlayerState获取修改后的值
-		// 注意：GetModifiedAttributeValue需要基础值，我们在这里提供
-		// if (GTPlayerState) {
-		//     CurrentMoveSpeed = GTPlayerState->GetModifiedAttributeValue(EAttributeType::MoveSpeed, BaseMoveSpeed);
-		// }
-		// 为了简化，我们暂时直接使用基础速度。上面的逻辑可以后续在PlayerState中完善。
+		float CurrentMoveSpeed = BaseMoveSpeed;		// 默认速度
+		 if (GTPlayerState) {						// 从PlayerState获取移动速度
+			 CurrentMoveSpeed = GTPlayerState->GetMoveSpeed();
+		 }
 
 		float MoveStep = CurrentMoveSpeed * DeltaTime;
 
