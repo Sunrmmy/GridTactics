@@ -9,6 +9,7 @@
 #include "GridCell.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -29,13 +30,23 @@ AHeroCharacter::AHeroCharacter()
 	CameraBoom->bDoCollisionTest = false;
 
 	// 设置弹簧臂的位置以实现俯视视角
-	CameraBoom->TargetArmLength = 800.f; // distance to character
+	CameraBoom->TargetArmLength = 800.f;
 	CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
+	// 不继承角色的旋转
+	CameraBoom->bInheritPitch = false;
+	CameraBoom->bInheritYaw = false;
+	CameraBoom->bInheritRoll = false;
 
 	// 创建摄像机并将其附加到弹簧臂
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;	// 摄像机不相对于弹簧臂旋转
+
+	// 禁用由 CharacterMovementComponent 引起的自动旋转才能通过 SetActorRotation()手动控制角色朝向
+	bUseControllerRotationYaw = false; // 角色不跟随控制器的Yaw旋转
+	GetCharacterMovement()->bOrientRotationToMovement = false; // 角色不自动朝向移动方向
+	GetCharacterMovement()->bUseControllerDesiredRotation = false; // 角色不使用控制器期望的旋转
+	TargetRotation = GetActorRotation();
 
 	GridSizeCM = 100.0f; // 1m
 }
@@ -82,6 +93,15 @@ void AHeroCharacter::Tick(float DeltaTime)
 	if (GTPlayerState) 
 	{
 		GTPlayerState->UpdateAttributes(DeltaTime);
+	}
+
+	// 平滑旋转到目标方向
+	if (!GetActorRotation().Equals(TargetRotation, 0.1f))
+	{
+		// 使用 RInterpTo 进行平滑插值
+		FRotator CurrentRotation = GetActorRotation();
+		FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 10.0f); // 10.0f 是旋转速度，可以调整
+		SetActorRotation(NewRotation);
 	}
 
 	if (bIsMoving)
@@ -224,8 +244,7 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 	bIsMoving = true;
 	if (DeltaX != 0 || DeltaY != 0)
 	{
-		FRotator NewRot = UKismetMathLibrary::MakeRotFromX(FVector(DeltaX, DeltaY, 0));
-		SetActorRotation(NewRot);
+		TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DeltaX, DeltaY, 0));		// 面向移动方向
 	}
 }
 

@@ -26,6 +26,10 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// 角色移动旋转的目标方向
+	FRotator TargetRotation;
+
+
 	// 用于显示玩家状态的UI控件蓝图类
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UUserWidget> PlayerHUDClass;
