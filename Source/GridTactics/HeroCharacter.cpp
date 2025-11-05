@@ -5,6 +5,8 @@
 #include "GridTacticsPlayerState.h"
 #include "Blueprint/UserWidget.h"
 #include "HUDWidget.h"
+#include "SkillComponent.h"
+#include "SkillDataAsset.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GridCell.h"
@@ -50,6 +52,27 @@ AHeroCharacter::AHeroCharacter()
 	TargetRotation = GetActorRotation();
 
 	GridSizeCM = 100.0f; // 1m
+
+	// 创建技能组件
+	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
+}
+
+// Called to bind functionality to input
+void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		// 绑定IA_Move到OnMove函数
+		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroCharacter::OnMove);
+		EnhancedInput->BindAction(IA_Skill_1, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 0);
+		EnhancedInput->BindAction(IA_Skill_2, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 1);
+		// 绑定其他技能键 ...
+
+		// 绑定鼠标点击用于确认施法
+		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -86,12 +109,13 @@ void AHeroCharacter::BeginPlay()
 	}
 }
 
+
 // Called every frame
 void AHeroCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (GTPlayerState) 
+	if (GTPlayerState)
 	{
 		GTPlayerState->UpdateAttributes(DeltaTime);
 	}
@@ -105,55 +129,164 @@ void AHeroCharacter::Tick(float DeltaTime)
 		SetActorRotation(NewRotation);
 	}
 
-	if (bIsMoving)
+	// 根据不同状态执行不同逻辑
+	switch (CurrentState)
 	{
-		FVector Current = GetActorLocation();
-		FVector Target2D = FVector(TargetLocation.X, TargetLocation.Y, Current.Z); // 保持当前高度
+	case ECharacterState::Idle:
+		// 空闲时可以恢复体力等
+		break;
+	case ECharacterState::Moving:
+		// 处理移动逻辑
+		HandleMovement(DeltaTime);
+		break;
+	case ECharacterState::Aiming:
+		// 准备施法时，更新朝向和范围显示
+		UpdateAimingDirection();
+		break;
+	case ECharacterState::Casting:
+		// 施法中，锁定所有操作
+		break;
+	}
+}
 
-		float Dist2D = FVector::DistXY(Current, TargetLocation);
-		
-		float CurrentMoveSpeed = BaseMoveSpeed;		// 默认速度
-		 if (GTPlayerState) {						// 从PlayerState获取移动速度
-			 CurrentMoveSpeed = GTPlayerState->GetMoveSpeed();
-		 }
+void AHeroCharacter::HandleMovement(float DeltaTime)
+{
+	FVector Current = GetActorLocation();
+	FVector Target2D = FVector(TargetLocation.X, TargetLocation.Y, Current.Z); // 保持当前高度
 
-		float MoveStep = CurrentMoveSpeed * DeltaTime;
+	float Dist2D = FVector::DistXY(Current, TargetLocation);
 
-		// 如果下一步会越过目标，直接吸附
-		if (Dist2D <= MoveStep)
+	float CurrentMoveSpeed = BaseMoveSpeed;		// 默认速度
+	if (GTPlayerState) {						// 从PlayerState获取移动速度
+		CurrentMoveSpeed = GTPlayerState->GetMoveSpeed();
+	}
+
+	float MoveStep = CurrentMoveSpeed * DeltaTime;
+
+	// 如果下一步会越过目标，直接吸附
+	if (Dist2D <= MoveStep)
+	{
+		SetActorLocation(Target2D);
+		CurrentState = ECharacterState::Idle; // 移动结束，返回Idle状态
+		UE_LOG(LogTemp, Warning, TEXT("Snapped to target, state is now Idle"));
+	}
+	else
+	{
+		// 向目标水平移动
+		FVector Dir = (Target2D - Current).GetSafeNormal();
+		FVector NewLocation = Current + Dir * MoveStep;
+		SetActorLocation(NewLocation);
+	}
+}
+
+void AHeroCharacter::UpdateAimingDirection()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+
+	// 从鼠标位置获取世界方向
+	FVector WorldLocation, WorldDirection;
+	PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+	// 计算鼠标指向的地面位置
+	FVector PlaneOrigin = GetActorLocation();
+	FVector MouseGroundPos = FMath::LinePlaneIntersection(WorldLocation, WorldLocation + WorldDirection * 10000.f, PlaneOrigin, FVector::UpVector);
+
+	// 计算相对于角色的方向并离散化
+	FVector DirToMouse = (MouseGroundPos - GetActorLocation()).GetSafeNormal();
+	int32 DirX = FMath::RoundToInt(DirToMouse.X);
+	int32 DirY = FMath::RoundToInt(DirToMouse.Y);
+
+	// 优先Y轴，如果Y为0再考虑X轴，确保是四个纯方向
+	if (FMath::Abs(DirY) >= FMath::Abs(DirX))
+	{
+		DirX = 0;
+		DirY = (DirY > 0) ? 1 : -1;
+	}
+	else
+	{
+		DirY = 0;
+		DirX = (DirX > 0) ? 1 : -1;
+	}
+
+	// 设置目标旋转，Tick中的平滑旋转逻辑会自动处理
+	TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DirX, DirY, 0));
+
+	// 更新技能范围显示
+	if (SkillComponent && AimingSkillIndex != -1)
+	{
+		// 用SkillComponent的GetSkillData函数来获取数据
+		if (const USkillDataAsset* SkillData = SkillComponent->GetSkillData(AimingSkillIndex))
 		{
-			SetActorLocation(Target2D);
-			bIsMoving = false;
-			UE_LOG(LogTemp, Warning, TEXT("Snapped to target"));
-		}
-		else
-		{
-			// 向目标水平移动
-			FVector Dir = (Target2D - Current).GetSafeNormal();
-			FVector NewLocation = Current + Dir * MoveStep;
-			SetActorLocation(NewLocation);
+			TArray<FIntPoint> WorldGrids = GetSkillRangeInWorld(SkillData->RangePattern);
+			ShowRangeIndicators(WorldGrids);
 		}
 	}
 }
 
-// Called to bind functionality to input
-void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AHeroCharacter::OnSkillButtonPressed(int32 SkillIndex)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	// 只有在空闲状态下才能开始准备技能
+	if (CurrentState == ECharacterState::Idle)
 	{
-		// 绑定IA_Move到OnMove函数
-		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroCharacter::OnMove);
+		CurrentState = ECharacterState::Aiming;
+		AimingSkillIndex = SkillIndex;
+		UE_LOG(LogTemp, Log, TEXT("Entering Aiming mode for skill %d"), SkillIndex);
 	}
+	// 如果正在准备同一个技能，则取消
+	else if (CurrentState == ECharacterState::Aiming && AimingSkillIndex == SkillIndex)
+	{
+		CurrentState = ECharacterState::Idle;
+		AimingSkillIndex = -1;
+		HideRangeIndicators(); // 调用蓝图事件隐藏范围显示
+		UE_LOG(LogTemp, Log, TEXT("Canceled Aiming mode"));
+	}
+	// 如果正在准备一个技能，但按下了另一个技能键，则切换到新技能的准备状态
+	else if (CurrentState == ECharacterState::Aiming && AimingSkillIndex != SkillIndex)
+	{
+		AimingSkillIndex = SkillIndex;
+		// 范围显示会在Tick中自动更新，无需额外操作
+		UE_LOG(LogTemp, Log, TEXT("Switched to Aiming mode for skill %d"), SkillIndex);
+	}
+}
+
+void AHeroCharacter::OnConfirmSkill()
+{
+	// 只有在准备施法状态下，鼠标点击才有效
+	if (CurrentState != ECharacterState::Aiming) return;
+
+	if (SkillComponent && AimingSkillIndex != -1)
+	{
+		// 激活技能（此时会消耗资源并进入冷却）
+		SkillComponent->TryActivateSkill(AimingSkillIndex);
+
+		// 进入施法状态，锁定操作
+		CurrentState = ECharacterState::Casting;
+		HideRangeIndicators(); // 隐藏范围显示
+
+		// 假设技能施法时间为0.5秒，这个值可以从SkillDataAsset中读取
+		const float CastTime = 0.5f;
+		GetWorldTimerManager().SetTimer(CastingTimerHandle, this, &AHeroCharacter::FinishCasting, CastTime, false);
+
+		UE_LOG(LogTemp, Log, TEXT("Casting skill %d for %f seconds"), AimingSkillIndex, CastTime);
+	}
+}
+
+void AHeroCharacter::FinishCasting()
+{
+	// 施法结束，返回空闲状态
+	CurrentState = ECharacterState::Idle;
+	AimingSkillIndex = -1;
+	GetWorldTimerManager().ClearTimer(CastingTimerHandle);
+	UE_LOG(LogTemp, Log, TEXT("Finished Casting, returning to Idle."));
 }
 
 
 void AHeroCharacter::OnMove(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Log, TEXT("OnMove triggered"));
+	// 只有在Idle状态下才能开始移动
+	if (CurrentState != ECharacterState::Idle) return;
 
-	if (bIsMoving) return;
 	FVector2D MoveVector = Value.Get<FVector2D>();
 	if (MoveVector.IsNearlyZero()) return;
 
@@ -172,8 +305,7 @@ void AHeroCharacter::OnMove(const FInputActionValue& Value)
 
 void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 {
-	UE_LOG(LogTemp, Warning, TEXT("CallCheck: bIsMoving = %s"), bIsMoving ? TEXT("TRUE") : TEXT("FALSE"));
-	if (bIsMoving) return;
+	// 状态检查移至OnMove
 	if (!GTPlayerState) return;
 
 	// 检查体力
@@ -190,7 +322,7 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 
 	// 转换为目标世界坐标
 	FVector TargetWorld = GridToWorld(TargetX, TargetY);
-	
+
 	// 使用小范围球形重叠检测（半径略小于格子尺寸，避免误触相邻格）
 	const float DetectionRadius = GridSizeCM * 0.4f;
 	const FVector DetectionOrigin = TargetWorld + FVector(0, 0, 10.0f); // 抬高避免穿地
@@ -217,15 +349,15 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 
 	// 检查是否有可行走的格子
 	bool bTargetWalkable = false;
-	UE_LOG(LogTemp, Warning, TEXT("Overlap detected %d results"), OverlapResults.Num());
 	for (const FOverlapResult& Result : OverlapResults)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *Result.GetActor()->GetName());
-		AGridCell* GridCell = Cast<AGridCell>(Result.GetActor());
-		if (GridCell && GridCell->IsWalkable())
+		if (AGridCell* GridCell = Cast<AGridCell>(Result.GetActor()))
 		{
-			bTargetWalkable = true;
-			break;
+			if (GridCell->IsWalkable())
+			{
+				bTargetWalkable = true;
+				break;
+			}
 		}
 	}
 
@@ -239,12 +371,53 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 	GTPlayerState->ConsumeStamina(1.0f);
 	UE_LOG(LogTemp, Log, TEXT("Moved. Stamina left: %f"), GTPlayerState->GetStamina());
 	TargetLocation = TargetWorld;
-	bIsMoving = true;
-	if (DeltaX != 0 || DeltaY != 0)
-	{
-		TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DeltaX, DeltaY, 0));		// 面向移动方向
-	}
+	CurrentState = ECharacterState::Moving; // 设置状态为移动
+	TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DeltaX, DeltaY, 0));		// 面向移动方向
 }
+
+
+TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorld(const TArray<FIntPoint>& Pattern) const
+{
+	TArray<FIntPoint> WorldGrids;
+	int32 CurrentX, CurrentY;
+	GetCurrentGrid(CurrentX, CurrentY);
+
+	// 获取角色当前的朝向向量 (离散化为网格方向)
+	const FVector ForwardVector = GetActorForwardVector();
+	const FIntPoint ForwardDir(FMath::RoundToInt(ForwardVector.X), FMath::RoundToInt(ForwardVector.Y));
+
+	for (const FIntPoint& RelativePos : Pattern)
+	{
+		FIntPoint RotatedPos;
+
+		// 这是处理四方向旋转的关键数学逻辑
+		// 假设基础模式是面向 Y+ (0, 1)
+		if (ForwardDir.X == 0 && ForwardDir.Y == 1) // North (Y+)
+		{
+			RotatedPos = RelativePos;
+		}
+		else if (ForwardDir.X == 0 && ForwardDir.Y == -1) // South (Y-)
+		{
+			RotatedPos.X = -RelativePos.X;
+			RotatedPos.Y = -RelativePos.Y;
+		}
+		else if (ForwardDir.X == 1 && ForwardDir.Y == 0) // East (X+)
+		{
+			RotatedPos.X = -RelativePos.Y;
+			RotatedPos.Y = RelativePos.X;
+		}
+		else // West (X-)
+		{
+			RotatedPos.X = RelativePos.Y;
+			RotatedPos.Y = -RelativePos.X;
+		}
+
+		WorldGrids.Add(FIntPoint(CurrentX + RotatedPos.X, CurrentY + RotatedPos.Y));
+	}
+
+	return WorldGrids;
+}
+
 
 
 // 世界坐标转网格坐标
@@ -268,4 +441,19 @@ void AHeroCharacter::GetCurrentGrid(int32& OutX, int32& OutY) const
 AGridTacticsPlayerState* AHeroCharacter::GetGridTacticsPlayerState() const
 {
 	return GTPlayerState;
+}
+
+float AHeroCharacter::GetCurrentActualSpeed() const
+{
+	// 只在移动状态获取角色速度给动画蓝图
+	if (CurrentState == ECharacterState::Moving)
+	{
+		if (GTPlayerState)
+		{
+			return GTPlayerState->GetMoveSpeed();
+		}
+		// 如果PlayerState无效，返回基础速度作为备用
+		return BaseMoveSpeed;
+	}
+	return 0.0f;
 }

@@ -64,6 +64,10 @@ void AGridTacticsPlayerState::ConsumeStamina(float Amount)
 {
 	Stamina = FMath::Max(0.f, Stamina - Amount);
 }
+void AGridTacticsPlayerState::ConsumeMP(float Amount)
+{
+	MP = FMath::Max(0.f, MP - Amount);
+}
 
 void AGridTacticsPlayerState::UpdateModifiers(float DeltaTime)
 {

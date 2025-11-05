@@ -98,8 +98,9 @@ public:
 	float GetMoveSpeed() const;
 
 
-	//Attribute Setters/Consumers Begin
+	//Attribute Setter/Consumer
 	void ConsumeStamina(float Amount);
+	void ConsumeMP(float Amount);
 
 	float GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const;
 
