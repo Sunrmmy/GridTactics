@@ -257,19 +257,33 @@ void AHeroCharacter::OnConfirmSkill()
 
 	if (SkillComponent && AimingSkillIndex != -1)
 	{
-		// 激活技能（此时会消耗资源并进入冷却）
-		SkillComponent->TryActivateSkill(AimingSkillIndex);
+		if (SkillComponent->TryActivateSkill(AimingSkillIndex))
+		{
+			// 进入施法状态，锁定操作
+			CurrentState = ECharacterState::Casting;
+			HideRangeIndicators(); // 隐藏范围显示
 
-		// 进入施法状态，锁定操作
-		CurrentState = ECharacterState::Casting;
-		HideRangeIndicators(); // 隐藏范围显示
-
-		// 假设技能施法时间为0.5秒，这个值可以从SkillDataAsset中读取
-		const float CastTime = 0.5f;
-		GetWorldTimerManager().SetTimer(CastingTimerHandle, this, &AHeroCharacter::FinishCasting, CastTime, false);
-
-		UE_LOG(LogTemp, Log, TEXT("Casting skill %d for %f seconds"), AimingSkillIndex, CastTime);
+			// 技能施法时间从SkillDataAsset中读取
+			float CastTime = SkillComponent->GetSkillData(AimingSkillIndex)->TimeCost;
+			if (CastTime > 0.0f) {
+				GetWorldTimerManager().SetTimer(CastingTimerHandle, this, &AHeroCharacter::FinishCasting, CastTime, false);
+				UE_LOG(LogTemp, Log, TEXT("Casting skill %d for %f seconds"), AimingSkillIndex, CastTime);
+			}
+			else
+			{
+				FinishCasting();
+			}
+		}
+		else
+		{
+			// 激活失败（如CD中、资源不足），则直接返回Idle状态
+			CurrentState = ECharacterState::Idle;
+			UE_LOG(LogTemp, Warning, TEXT("Failed to activate skill %d. Returning to Idle."), AimingSkillIndex);
+			AimingSkillIndex = -1;
+			HideRangeIndicators();
+		}
 	}
+
 }
 
 void AHeroCharacter::FinishCasting()
@@ -329,7 +343,7 @@ void AHeroCharacter::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 
 	// 使用小范围球形重叠检测（半径略小于格子尺寸，避免误触相邻格）
 	const float DetectionRadius = GridSizeCM * 0.4f;
-	const FVector DetectionOrigin = TargetWorld + FVector(0, 0, 10.0f); // 抬高避免穿地
+	const FVector DetectionOrigin = TargetWorld + FVector(0, 0, 10.0f);
 	// 可视化调试球体
 	DrawDebugSphere(GetWorld(), DetectionOrigin, DetectionRadius, 12, FColor::Red, false, 2.0f);
 

@@ -33,13 +33,20 @@ public:
 	// Sets default values for this component's properties
 	USkillComponent();
 
+	// 根据技能实例获取其在技能插槽中的索引
+	int32 GetSkillIndex(const UBaseSkill* SkillInstance) const;
+
 	// 尝试激活指定索引的技能
 	UFUNCTION(BlueprintCallable, Category = "Skills")
-	void TryActivateSkill(int32 SkillIndex);
+	bool TryActivateSkill(int32 SkillIndex);
 
 	// 获取指定索引的技能数据资产（SkillIndex为技能在插槽中的索引）
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	const USkillDataAsset* GetSkillData(int32 SkillIndex) const;
+
+	// 获取指定索引技能的剩余冷却时间
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	float GetCooldownRemaining(int32 SkillIndex) const;
 
 protected:
 	// Called when the game starts

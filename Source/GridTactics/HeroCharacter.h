@@ -37,6 +37,7 @@ public:
 	TObjectPtr<USkillComponent> SkillComponent;
 
 	// 根据技能数据的范围模式获取实际的世界坐标范围
+	UFUNCTION(BlueprintPure, Category = "Skills")
 	TArray<FIntPoint> GetSkillRangeInWorld(const TArray<FIntPoint>& Pattern) const;
 
 	// 显示技能范围指示器（蓝图实现）

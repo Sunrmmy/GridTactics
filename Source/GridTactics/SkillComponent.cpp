@@ -54,19 +54,29 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
     }
 }
 
-void USkillComponent::TryActivateSkill(int32 SkillIndex)
+bool USkillComponent::TryActivateSkill(int32 SkillIndex)
 {
-    if (!SkillSlots.IsValidIndex(SkillIndex)) return;
+    if (!SkillSlots.IsValidIndex(SkillIndex)) return false;
 
     FSkillEntry& SkillEntry = SkillSlots[SkillIndex];
 
     // 检查冷却和能否激活
-    if (SkillEntry.CooldownRemaining <= 0.0f && SkillEntry.SkillInstance && SkillEntry.SkillInstance->CanActivate())
+    if (SkillEntry.SkillInstance && SkillEntry.SkillInstance->CanActivate())
     {
         SkillEntry.SkillInstance->Activate();
         // 设置冷却时间
         SkillEntry.CooldownRemaining = SkillEntry.SkillData->Cooldown;
+        return true;    // 技能激活成功
     }
+    return false;
+}
+float USkillComponent::GetCooldownRemaining(int32 SkillIndex) const     // 将技能cd剩余时间传给BaseSkill的CanActivate函数来判断技能是否可用
+{
+    if (SkillSlots.IsValidIndex(SkillIndex))
+    {
+        return SkillSlots[SkillIndex].CooldownRemaining;
+    }
+    return 0.0f;
 }
 
 const USkillDataAsset* USkillComponent::GetSkillData(int32 SkillIndex) const
@@ -80,4 +90,16 @@ const USkillDataAsset* USkillComponent::GetSkillData(int32 SkillIndex) const
 
     // 如果索引无效，返回空指针
     return nullptr;
+}
+
+int32 USkillComponent::GetSkillIndex(const UBaseSkill* SkillInstance) const
+{
+    for (int32 i = 0; i < SkillSlots.Num(); ++i)
+    {
+        if (SkillSlots[i].SkillInstance == SkillInstance)
+        {
+            return i;
+        }
+    }
+    return INDEX_NONE;  //找不到则返回-1
 }

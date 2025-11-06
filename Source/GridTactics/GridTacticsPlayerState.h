@@ -103,12 +103,12 @@ public:
 	float GetMaxShield() const { return MaxShield; }
 
 	//Attribute Setter/Consumer
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void ConsumeStamina(float Amount);
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void ConsumeMP(float Amount);
-
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void ApplyDamage(float DamageAmount);
-
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void AddShield(float Amount);
 
