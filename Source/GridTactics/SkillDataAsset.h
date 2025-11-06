@@ -25,7 +25,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
 	TSubclassOf<class UBaseSkill> SkillLogicClass;
 
-	// 技能的范围模式，基于角色面向正前方(Y+)	例如: {(0,1), (0,2), (1,1), (-1,1)} 代表角色朝向的一个T形范围
+	// 技能的范围模式，基于角色面向正前方(X+)	例如: {(1,0), (2,0), (3,0), (3,1), (3,-1)} 代表角色朝向的一个T形范围
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
 	TArray<FIntPoint> RangePattern;
 
@@ -37,4 +37,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Stats")
 	float MPCost = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Stats")
+	float TimeCost = 0.0f;
+
+	// 技能效果
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects")
+	float Damage = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给目标的效果"))
+	TArray<FAttributeModifier> TargetModifiers;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给自己的效果"))
+	TArray<FAttributeModifier> SelfModifiers;
 };

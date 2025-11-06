@@ -17,6 +17,7 @@ void AGridTacticsPlayerState::BeginPlay()
 	HP = MaxHP;
 	MP = MaxMP;
 	Stamina = MaxStamina;
+	Shield = 0;
 }
 
 void AGridTacticsPlayerState::UpdateAttributes(float DeltaTime)
@@ -67,6 +68,28 @@ void AGridTacticsPlayerState::ConsumeStamina(float Amount)
 void AGridTacticsPlayerState::ConsumeMP(float Amount)
 {
 	MP = FMath::Max(0.f, MP - Amount);
+}
+void AGridTacticsPlayerState::ApplyDamage(float DamageAmount)
+{
+	// 1. 计算经过护甲减免后的最终伤害
+	const float DamageAfterArmor = FMath::Max(0.f, DamageAmount - GetArmor());
+	if (DamageAfterArmor <= 0.f) return; // 护甲完全抵挡了伤害
+
+	// 2. 优先用护盾吸收伤害
+	const float DamageToShield = FMath::Min(Shield, DamageAfterArmor);
+	Shield -= DamageToShield;
+
+	// 3. 剩余的伤害再作用于HP
+	const float DamageToHP = DamageAfterArmor - DamageToShield;
+	HP = FMath::Max(0.f, HP - DamageToHP);
+
+	UE_LOG(LogTemp, Log, TEXT("Damage: %.1f -> Armor Absorbed -> %.1f. Shield took %.1f, HP took %.1f. HP left: %.1f, Shield left: %.1f"),
+		DamageAmount, GetArmor(), DamageToShield, DamageToHP, HP, Shield);
+}
+
+void AGridTacticsPlayerState::AddShield(float Amount)
+{
+	Shield = FMath::Min(MaxShield, Shield + Amount);
 }
 
 void AGridTacticsPlayerState::UpdateModifiers(float DeltaTime)

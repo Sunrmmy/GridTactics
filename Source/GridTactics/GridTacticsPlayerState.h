@@ -97,10 +97,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	float GetMoveSpeed() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	float GetShield() const { return Shield; }
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	float GetMaxShield() const { return MaxShield; }
 
 	//Attribute Setter/Consumer
 	void ConsumeStamina(float Amount);
 	void ConsumeMP(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void ApplyDamage(float DamageAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void AddShield(float Amount);
 
 	float GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const;
 
@@ -130,7 +140,13 @@ protected:
 	float BaseStaminaRecoveryRate = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseArmor = 10.0f;
+	float BaseArmor = 0.0f;
+
+	// 护盾属性（不可恢复）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base", meta = (Tooltip = "护盾的最大值"))
+	float MaxShield = 100.0f;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Attributes|Current", meta = (Tooltip = "当前护盾值"))
+	float Shield = 0.0f;
 
 private:
 	// 属性修改器

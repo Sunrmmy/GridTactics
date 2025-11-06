@@ -394,23 +394,23 @@ TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorld(const TArray<FIntPoint>& 
 	{
 		FIntPoint RotatedPos;
 
-		// 这是处理四方向旋转的关键数学逻辑
-		// 假设基础模式是面向 Y+ (0, 1)
-		if (ForwardDir.X == 0 && ForwardDir.Y == 1) // North (Y+)
+		// 处理四方向旋转的关键逻辑
+		// 基础模式是面向 X+ (1, 0)
+		if (ForwardDir.X == 1 && ForwardDir.Y == 0) // East (X+), 基准方向
 		{
 			RotatedPos = RelativePos;
 		}
-		else if (ForwardDir.X == 0 && ForwardDir.Y == -1) // South (Y-)
+		else if (ForwardDir.X == -1 && ForwardDir.Y == 0) // West (X-), 旋转180度
 		{
 			RotatedPos.X = -RelativePos.X;
 			RotatedPos.Y = -RelativePos.Y;
 		}
-		else if (ForwardDir.X == 1 && ForwardDir.Y == 0) // East (X+)
+		else if (ForwardDir.X == 0 && ForwardDir.Y == 1) // North (Y+), 逆时针旋转90度
 		{
 			RotatedPos.X = -RelativePos.Y;
 			RotatedPos.Y = RelativePos.X;
 		}
-		else // West (X-)
+		else if(ForwardDir.X == 0 && ForwardDir.Y == -1)// South (Y-), 顺时针旋转90度
 		{
 			RotatedPos.X = RelativePos.Y;
 			RotatedPos.Y = -RelativePos.X;
