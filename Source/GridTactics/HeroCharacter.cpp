@@ -281,6 +281,10 @@ void AHeroCharacter::FinishCasting()
 	UE_LOG(LogTemp, Log, TEXT("Finished Casting, returning to Idle."));
 }
 
+void AHeroCharacter::HideRangeIndicators_Implementation()
+{
+	// 这个C++实现留空，所有逻辑都在蓝图中完成。蓝图中的实现会自动覆盖这个空函数。
+}
 
 void AHeroCharacter::OnMove(const FInputActionValue& Value)
 {

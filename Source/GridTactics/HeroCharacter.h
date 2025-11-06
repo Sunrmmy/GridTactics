@@ -42,9 +42,10 @@ public:
 	// 显示技能范围指示器（蓝图实现）
 	UFUNCTION(BlueprintImplementableEvent, Category = "Skills")
 	void ShowRangeIndicators(const TArray<FIntPoint>& GridsToHighlight);
-	// 隐藏所有范围指示器（蓝图实现）
-	UFUNCTION(BlueprintImplementableEvent, Category = "Skills")
+	// 隐藏所有范围指示器（蓝图实现,可以作为函数被调用）
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Skills")
 	void HideRangeIndicators();
+	virtual void HideRangeIndicators_Implementation();
 
 protected:
 	// Called when the game starts or when spawned
@@ -117,10 +118,13 @@ public:
 
 
 	// 世界坐标与网格坐标转换
+	UFUNCTION(BlueprintCallable, Category = "Grid System")
 	bool WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) const;
+	UFUNCTION(BlueprintCallable, Category = "Grid System")
 	FVector GridToWorld(int32 X, int32 Y) const;
 
 	// 获取当前角色所在的网格坐标
+	UFUNCTION(BlueprintCallable, Category = "Grid System")
 	void GetCurrentGrid(int32& OutX, int32& OutY) const;
 
 	// 尝试向某一方向移动一格
