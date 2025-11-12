@@ -74,6 +74,8 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInput->BindAction(IA_Skill_2, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 1);
 		// 绑定其他技能键 ...
 
+		// 绑定取消施法
+		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
 		// 绑定鼠标点击用于确认施法
 		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
 	}
@@ -125,19 +127,23 @@ void AHeroCharacter::Tick(float DeltaTime)
 		GTPlayerState->UpdateAttributes(DeltaTime);
 	}
 
-	// 根据不同状态执行不同逻辑
-	switch (CurrentState)
+	if (SkillComponent)
 	{
-	case ECharacterState::Idle:
-		// 空闲时可以恢复体力等
-		break;
-	case ECharacterState::Aiming:
-		// 准备施法时，更新朝向和范围显示
-		UpdateAimingDirection();
-		break;
-	case ECharacterState::Casting:
-		// 施法中，锁定所有操作
-		break;
+		// 根据技能组件的状态来决定角色是否可以行动
+		if (SkillComponent->GetCurrentSkillState() == ESkillState::Casting)
+		{
+			RootState = ECharacterRootState::Busy;
+		}
+		else
+		{
+			RootState = ECharacterRootState::Idle;
+		}
+
+		// 只有在技能组件处于瞄准状态时，才更新方向和范围显示
+		if (SkillComponent->GetCurrentSkillState() == ESkillState::Aiming)
+		{
+			UpdateAimingDirection();
+		}
 	}
 }
 
@@ -146,7 +152,7 @@ void AHeroCharacter::Tick(float DeltaTime)
 void AHeroCharacter::UpdateAimingDirection()
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC || !GridMovementComponent) return;
+	if (!PC || !GridMovementComponent || !SkillComponent) return;
 
 	// 从鼠标位置获取世界方向
 	FVector WorldLocation, WorldDirection;
@@ -177,98 +183,48 @@ void AHeroCharacter::UpdateAimingDirection()
 	const FRotator TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DirX, DirY, 0));
 	GridMovementComponent->SetTargetRotation(TargetRotation);
 
+	const int32 AimingSkillIndex = SkillComponent->GetAimingSkillIndex();
 	// 更新技能范围显示
-	if (SkillComponent && AimingSkillIndex != -1)
-	{
 		// 用SkillComponent的GetSkillData函数来获取数据
-		if (const USkillDataAsset* SkillData = SkillComponent->GetSkillData(AimingSkillIndex))
-		{
-			TArray<FIntPoint> WorldGrids = GetSkillRangeInWorld(SkillData->RangePattern);
-			ShowRangeIndicators(WorldGrids);
-		}
+	if (const USkillDataAsset* SkillData = SkillComponent->GetSkillData(AimingSkillIndex))
+	{
+		TArray<FIntPoint> WorldGrids = GetSkillRangeInWorld(SkillData->RangePattern);
+		ShowRangeIndicators(WorldGrids);
 	}
 }
+
 
 void AHeroCharacter::OnSkillButtonPressed(int32 SkillIndex)
 {
-	// 只有在空闲状态下才能开始准备技能
-	if (CurrentState == ECharacterState::Idle)
+	// 只有在角色不忙的时候才能开始技能操作
+	if (RootState == ECharacterRootState::Idle && SkillComponent)
 	{
-		CurrentState = ECharacterState::Aiming;
-		AimingSkillIndex = SkillIndex;
-		UE_LOG(LogTemp, Log, TEXT("Entering Aiming mode for skill %d"), SkillIndex);
-	}
-	// 如果正在准备同一个技能，则取消
-	else if (CurrentState == ECharacterState::Aiming && AimingSkillIndex == SkillIndex)
-	{
-		CurrentState = ECharacterState::Idle;
-		AimingSkillIndex = -1;
-		HideRangeIndicators(); // 调用蓝图事件隐藏范围显示
-		UE_LOG(LogTemp, Log, TEXT("Canceled Aiming mode"));
-	}
-	// 如果正在准备一个技能，但按下了另一个技能键，则切换到新技能的准备状态
-	else if (CurrentState == ECharacterState::Aiming && AimingSkillIndex != SkillIndex)
-	{
-		AimingSkillIndex = SkillIndex;
-		// 范围显示会在Tick中自动更新，无需额外操作
-		UE_LOG(LogTemp, Log, TEXT("Switched to Aiming mode for skill %d"), SkillIndex);
+		SkillComponent->TryStartAiming(SkillIndex);
 	}
 }
-
 void AHeroCharacter::OnConfirmSkill()
 {
-	// 只有在准备施法状态下，鼠标点击才有效
-	if (CurrentState != ECharacterState::Aiming) return;
-
-	if (SkillComponent && AimingSkillIndex != -1)
+	// 直接将输入转发给SkillComponent
+	if (SkillComponent)
 	{
-		if (SkillComponent->TryActivateSkill(AimingSkillIndex))
-		{
-			// 进入施法状态，锁定操作
-			CurrentState = ECharacterState::Casting;
-			HideRangeIndicators(); // 隐藏范围显示
-
-			// 技能施法时间从SkillDataAsset中读取
-			float CastTime = SkillComponent->GetSkillData(AimingSkillIndex)->TimeCost;
-			if (CastTime > 0.0f) {
-				GetWorldTimerManager().SetTimer(CastingTimerHandle, this, &AHeroCharacter::FinishCasting, CastTime, false);
-				UE_LOG(LogTemp, Log, TEXT("Casting skill %d for %f seconds"), AimingSkillIndex, CastTime);
-			}
-			else
-			{
-				FinishCasting();
-			}
-		}
-		else
-		{
-			// 激活失败（如CD中、资源不足），则直接返回Idle状态
-			CurrentState = ECharacterState::Idle;
-			UE_LOG(LogTemp, Warning, TEXT("Failed to activate skill %d. Returning to Idle."), AimingSkillIndex);
-			AimingSkillIndex = -1;
-			HideRangeIndicators();
-		}
+		SkillComponent->TryConfirmSkill();
 	}
-
 }
-
-void AHeroCharacter::FinishCasting()
+void AHeroCharacter::OnCancelSkill()
 {
-	// 施法结束，返回空闲状态
-	CurrentState = ECharacterState::Idle;
-	AimingSkillIndex = -1;
-	GetWorldTimerManager().ClearTimer(CastingTimerHandle);
-	UE_LOG(LogTemp, Log, TEXT("Finished Casting, returning to Idle."));
+	if (SkillComponent)
+	{
+		SkillComponent->CancelAiming();
+	}
 }
 
-void AHeroCharacter::HideRangeIndicators_Implementation()
-{
-	// 这个C++实现留空，所有逻辑都在蓝图中完成。蓝图中的实现会自动覆盖这个空函数。
-}
 
 void AHeroCharacter::OnMove(const FInputActionValue& Value)
 {
 	// 只有在Idle状态下才能开始移动
-	if (CurrentState != ECharacterState::Idle || (GridMovementComponent && GridMovementComponent->IsMoving())) return;
+	if (RootState != ECharacterRootState::Idle ||
+		(SkillComponent && SkillComponent->GetCurrentSkillState() == ESkillState::Aiming) ||
+		(GridMovementComponent && GridMovementComponent->IsMoving())) return;
 
 	FVector2D MoveVector = Value.Get<FVector2D>();
 	if (MoveVector.IsNearlyZero()) return;

@@ -21,7 +21,7 @@ void USkillComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AHeroCharacter* OwnerCharacter = Cast<AHeroCharacter>(GetOwner());
+	OwnerCharacter = Cast<AHeroCharacter>(GetOwner());
 	if (!OwnerCharacter) return;
 
     // 基于数据资产，实例化技能逻辑对象
@@ -54,6 +54,85 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
     }
 }
 
+
+void USkillComponent::TryStartAiming(int32 SkillIndex)
+{
+    if (CurrentState == ESkillState::Idle)
+    {
+        CurrentState = ESkillState::Aiming;
+        AimingSkillIndex = SkillIndex;
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Entering Aiming mode for skill %d"), SkillIndex);
+    }
+    else if (CurrentState == ESkillState::Aiming && AimingSkillIndex == SkillIndex)
+    {
+        CancelAiming();
+    }
+    else if (CurrentState == ESkillState::Aiming && AimingSkillIndex != SkillIndex)
+    {
+        AimingSkillIndex = SkillIndex;
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Switched to Aiming mode for skill %d"), SkillIndex);
+    }
+}
+void USkillComponent::CancelAiming()
+{
+    if (CurrentState == ESkillState::Aiming)
+    {
+        CurrentState = ESkillState::Idle;
+        AimingSkillIndex = -1;
+        if (OwnerCharacter)
+        {
+            OwnerCharacter->HideRangeIndicators();
+        }
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Canceled Aiming mode"));
+    }
+}
+
+
+void USkillComponent::TryConfirmSkill()
+{
+    if (CurrentState != ESkillState::Aiming || AimingSkillIndex == -1) return;
+
+    if (TryActivateSkill(AimingSkillIndex))
+    {
+        CurrentState = ESkillState::Casting;
+        if (OwnerCharacter)
+        {
+            OwnerCharacter->HideRangeIndicators();
+        }
+
+        const USkillDataAsset* SkillData = GetSkillData(AimingSkillIndex);
+        if (SkillData)
+        {
+            if (SkillData->TimeCost > 0.0f)
+            {
+                GetWorld()->GetTimerManager().SetTimer(CastingTimerHandle, this, &USkillComponent::FinishCasting, SkillData->TimeCost, false);
+            }
+            else
+            {
+                FinishCasting();
+            }
+        }
+    }
+    else
+    {
+        // 激活失败，返回Idle
+        CurrentState = ESkillState::Idle;
+        AimingSkillIndex = -1;
+        if (OwnerCharacter)
+        {
+            OwnerCharacter->HideRangeIndicators();
+        }
+    }
+}
+
+void USkillComponent::FinishCasting()
+{
+    CurrentState = ESkillState::Idle;
+    AimingSkillIndex = -1;
+    GetWorld()->GetTimerManager().ClearTimer(CastingTimerHandle);
+    UE_LOG(LogTemp, Log, TEXT("SkillComponent: Finished Casting, returning to Idle."));
+}
+
 bool USkillComponent::TryActivateSkill(int32 SkillIndex)
 {
     if (!SkillSlots.IsValidIndex(SkillIndex)) return false;
@@ -70,6 +149,7 @@ bool USkillComponent::TryActivateSkill(int32 SkillIndex)
     }
     return false;
 }
+
 float USkillComponent::GetCooldownRemaining(int32 SkillIndex) const     // 将技能cd剩余时间传给BaseSkill的CanActivate函数来判断技能是否可用
 {
     if (SkillSlots.IsValidIndex(SkillIndex))
