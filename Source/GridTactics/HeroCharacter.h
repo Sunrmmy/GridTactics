@@ -6,14 +6,6 @@
 #include "GameFramework/Character.h"
 #include "HeroCharacter.generated.h"
 
-UENUM(BlueprintType)
-enum class ECharacterState : uint8
-{
-	Idle,           // 空闲
-	Aiming,         // 准备施法（显示范围）
-	Casting,        // 正在施法（锁定操作）
-};
-
 class UCameraComponent;
 class USpringArmComponent;
 class UInputMappingContext;
@@ -23,6 +15,15 @@ class AGridTacticsPlayerState;
 class USkillComponent;
 class AGridCell;
 class UGridMovementComponent;
+class USkillDataAsset;
+
+UENUM(BlueprintType)
+enum class ECharacterRootState : uint8
+{
+	Idle,           // 空闲
+	Busy            // 使用通用的忙碌状态来表示角色正在执行移动或正在施法等（具体状态迁移到其它组件中）
+};
+
 UCLASS()
 class GRIDTACTICS_API AHeroCharacter : public ACharacter
 {
@@ -31,6 +32,10 @@ class GRIDTACTICS_API AHeroCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AHeroCharacter();
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+	// Called to bind functionality to input
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
@@ -50,6 +55,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkillComponent> SkillComponent;
 
+
 	// 根据技能数据的范围模式获取实际的世界坐标范围
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	TArray<FIntPoint> GetSkillRangeInWorld(const TArray<FIntPoint>& Pattern) const;
@@ -61,13 +67,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Skills")
 	void HideRangeIndicators();
 	virtual void HideRangeIndicators_Implementation();
-
-
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 
 	UFUNCTION(BlueprintPure, Category = "Attributes")
@@ -88,45 +87,43 @@ protected:
 	void OnMove(const FInputActionValue& Value);
 	void OnSkillButtonPressed(int32 SkillIndex);
 	void OnConfirmSkill();
+	void OnCancelSkill();
 
 	//输入动作（增强输入系统）
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> IMC_Hero;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> IA_Move;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_PrimaryAttack;
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Cancel;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> IA_Skill_1;
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> IA_Skill_2;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_PrimaryAttack;
 	// ...其他输入动作...
 
 
 	// 更新施法瞄准方向
 	void UpdateAimingDirection();
-	// 施法结束时调用的函数
-	void FinishCasting();
 
 	// 用于显示玩家状态的UI控件蓝图类
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UHUDWidget> PlayerHUDClass;
 
 private:
-	// 正在准备的技能信息
-	int32 AimingSkillIndex = -1;
-	FTimerHandle CastingTimerHandle;
-
 	// 角色状态
 	UPROPERTY()
 	TObjectPtr<AGridTacticsPlayerState> GTPlayerState;
-
-	ECharacterState CurrentState = ECharacterState::Idle;
 
 	// 创建出的UI控件实例
 	UPROPERTY()
 	TObjectPtr<class UHUDWidget> PlayerHUD;
 
-
+	// 角色当前的根状态
+	ECharacterRootState RootState = ECharacterRootState::Idle;
 };
 

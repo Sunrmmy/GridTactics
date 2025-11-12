@@ -8,7 +8,16 @@
 
 class USkillDataAsset;
 class UBaseSkill;
+class AHeroCharacter;
 
+// 定义技能组件自身的状态
+UENUM(BlueprintType)
+enum class ESkillState : uint8
+{
+	Idle,
+	Aiming,
+	Casting
+};
 USTRUCT(BlueprintType)
 struct FSkillEntry
 {
@@ -33,12 +42,24 @@ public:
 	// Sets default values for this component's properties
 	USkillComponent();
 
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+
+	// 尝试开始瞄准一个技能
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	void TryStartAiming(int32 SkillIndex);
+	// 尝试确认并激活当前正在瞄准的技能
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	void TryConfirmSkill();
+	// 取消瞄准
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	void CancelAiming();
+
+
 	// 根据技能实例获取其在技能插槽中的索引
 	int32 GetSkillIndex(const UBaseSkill* SkillInstance) const;
 
-	// 尝试激活指定索引的技能
-	UFUNCTION(BlueprintCallable, Category = "Skills")
-	bool TryActivateSkill(int32 SkillIndex);
 
 	// 获取指定索引的技能数据资产（SkillIndex为技能在插槽中的索引）
 	UFUNCTION(BlueprintPure, Category = "Skills")
@@ -47,6 +68,13 @@ public:
 	// 获取指定索引技能的剩余冷却时间
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	float GetCooldownRemaining(int32 SkillIndex) const;
+
+	// 获取当前状态
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	ESkillState GetCurrentSkillState() const { return CurrentState; }
+
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	int32 GetAimingSkillIndex() const { return AimingSkillIndex; }
 
 protected:
 	// Called when the game starts
@@ -59,7 +87,17 @@ protected:
 	// 运行时实例化的技能
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Skills")
 	TArray<FSkillEntry> SkillSlots;
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+private:
+	// 尝试激活指定索引的技能
+	bool TryActivateSkill(int32 SkillIndex);
+	void FinishCasting();
+
+	UPROPERTY()
+	TObjectPtr<AHeroCharacter> OwnerCharacter;
+
+	// 技能状态变量
+	ESkillState CurrentState = ESkillState::Idle;
+	int32 AimingSkillIndex = -1;
+	FTimerHandle CastingTimerHandle;
 };
