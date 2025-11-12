@@ -3,6 +3,7 @@
 
 #include "GridTacticsPlayerState.h"
 #include "HeroCharacter.h"
+#include "GridMovementComponent.h"
 
 AGridTacticsPlayerState::AGridTacticsPlayerState()
 {
@@ -55,8 +56,9 @@ float AGridTacticsPlayerState::GetMoveSpeed() const
 	// 获取此PlayerState对应的Pawn
 	if (const AHeroCharacter* HeroCharacter = Cast<AHeroCharacter>(GetPawn()))
 	{
+		if(const UGridMovementComponent* MovementComp = HeroCharacter->GetGridMovementComponent())
 		// 从角色获取基础速度，然后计算修改后的值
-		return GetModifiedAttributeValue(EAttributeType::MoveSpeed, HeroCharacter->GetBaseMoveSpeed());
+		return GetModifiedAttributeValue(EAttributeType::MoveSpeed, MovementComp->GetBaseMoveSpeed());
 	}
 	return 0.0f;
 }

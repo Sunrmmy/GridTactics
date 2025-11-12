@@ -5,6 +5,7 @@
 #include "HeroCharacter.h"
 #include "SkillDataAsset.h"
 #include "SkillComponent.h"
+#include "GridMovementComponent.h"
 #include "GridTacticsPlayerState.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -63,6 +64,14 @@ void UBaseSkill::Activate_Implementation()
     }
     UE_LOG(LogTemp, Warning, TEXT("Skill '%s' Activated!"), *SkillData->SkillName.ToString());
 
+    // 获取移动组件，用于坐标转换
+    UGridMovementComponent* MovementComp = OwnerCharacter->GetGridMovementComponent();
+    if (!MovementComp)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Activate_Implementation failed: GridMovementComponent is missing."));
+        return;
+    }
+
     // 获取技能范围
     const TArray<FIntPoint> WorldGrids = OwnerCharacter->GetSkillRangeInWorld(SkillData->RangePattern);
 
@@ -79,7 +88,7 @@ void UBaseSkill::Activate_Implementation()
     // 遍历范围格子，在每个格子上检测敌人
     for (const FIntPoint& Grid : WorldGrids)
     {
-        FVector WorldLocation = OwnerCharacter->GridToWorld(Grid.X, Grid.Y);
+        FVector WorldLocation = MovementComp->GridToWorld(Grid.X, Grid.Y);
         TArray<AActor*> OverlappedActors;
 
         UKismetSystemLibrary::SphereOverlapActors(
