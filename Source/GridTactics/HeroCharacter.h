@@ -66,7 +66,7 @@ public:
 	// 隐藏所有范围指示器（蓝图实现,可以作为函数被调用）
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Skills")
 	void HideRangeIndicators();
-	virtual void HideRangeIndicators_Implementation();
+	//virtual void HideRangeIndicators_Implementation();
 
 
 	UFUNCTION(BlueprintPure, Category = "Attributes")
