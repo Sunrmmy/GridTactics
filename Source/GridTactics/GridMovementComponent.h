@@ -7,6 +7,7 @@
 #include "GridMovementComponent.generated.h"
 
 class AGridTacticsPlayerState;
+class AGridManager;
 UENUM(BlueprintType)
 enum class EMovementState : uint8
 {
@@ -80,4 +81,13 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float GridSizeCM = 100.0f; // 1m = 100cm
 
+
+	// 网格仲裁者引用
+	UPROPERTY()
+	TObjectPtr<AGridManager> GridManager;
+	// 允许在蓝图中指定要查找的GridManager类
+	UPROPERTY(EditDefaultsOnly, Category = "Grid")
+	TSubclassOf<AGridManager> GridManagerClass;
+	// 记录当前正在移动的目标网格，以便在移动结束后释放
+	FIntPoint CurrentTargetGrid;
 };

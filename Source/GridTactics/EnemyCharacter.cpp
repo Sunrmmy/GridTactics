@@ -47,3 +47,11 @@ void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 }
 
+float AEnemyCharacter::GetCurrentActualSpeed() const
+{
+	if (GridMovementComponent && GridMovementComponent->IsMoving())
+	{
+		return GridMovementComponent->GetCurrentActualSpeed();
+	}
+	return 0.0f;
+}

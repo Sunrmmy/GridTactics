@@ -8,6 +8,7 @@
 
 class UGridMovementComponent;
 class USkillComponent;
+class AEnemyAIController;
 UCLASS()
 class GRIDTACTICS_API AEnemyCharacter : public ACharacter
 {
@@ -25,6 +26,9 @@ public:
 	// 让AI控制器可以获取这些组件来下达指令
 	UGridMovementComponent* GetGridMovementComponent() const { return GridMovementComponent; }
 	USkillComponent* GetSkillComponent() const { return SkillComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Animation")
+	float GetCurrentActualSpeed() const;
 
 protected:
 	// Called when the game starts or when spawned
