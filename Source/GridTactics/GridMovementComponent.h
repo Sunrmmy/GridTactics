@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "GridMovementComponent.generated.h"
 
-class AGridTacticsPlayerState;
+class UAttributesComponent;
 class AGridManager;
 UENUM(BlueprintType)
 enum class EMovementState : uint8
@@ -51,7 +51,7 @@ public:
 	float GetCurrentActualSpeed() const;
 
 	UFUNCTION(BlueprintPure, Category = "Movement")
-	float GetBaseMoveSpeed() const { return BaseMoveSpeed; }
+	float GetBaseMoveSpeed() const;
 
 protected:
 	// Called when the game starts
@@ -63,8 +63,10 @@ private:
 
 	UPROPERTY()
 	ACharacter* OwnerCharacter;
+
+	// 属性组件引用
 	UPROPERTY()
-	AGridTacticsPlayerState* GTPlayerState;
+	TObjectPtr<UAttributesComponent> AttributesComp;
 
 	EMovementState CurrentState = EMovementState::Idle;
 
@@ -73,9 +75,9 @@ private:
 	// 角色移动的目标位置
 	FVector TargetLocation;
 
-	// 基础移动速度
-	UPROPERTY(EditDefaultsOnly, Category = "Grid")
-	float BaseMoveSpeed = 300.0f; // cm/s
+	//// 基础移动速度	// 现在由AttributesComponent管理
+	//UPROPERTY(EditDefaultsOnly, Category = "Grid")
+	//float BaseMoveSpeed = 300.0f; // cm/s
 
 	//网格尺寸
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")

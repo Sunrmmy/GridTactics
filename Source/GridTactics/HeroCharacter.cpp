@@ -3,6 +3,7 @@
 
 #include "HeroCharacter.h"
 #include "GridTacticsPlayerState.h"
+#include "AttributesComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "HUDWidget.h"
 #include "SkillComponent.h"
@@ -55,9 +56,10 @@ AHeroCharacter::AHeroCharacter()
 
 	// 创建技能组件
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
-
 	// 创建网格移动组件
 	GridMovementComponent = CreateDefaultSubobject<UGridMovementComponent>(TEXT("GridMovementComponent"));
+	// 创建属性组件
+	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>(TEXT("AttributesComponent"));
 }
 
 
@@ -122,10 +124,11 @@ void AHeroCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (GTPlayerState)
-	{
-		GTPlayerState->UpdateAttributes(DeltaTime);
-	}
+	// 不再需要手动更新属性组件，它现在自己会Tick（与HeroCharacter解耦）
+	//if (AttributesComponent)
+	//{
+	//	AttributesComponent->UpdateAttributes(DeltaTime);
+	//}
 
 	if (SkillComponent)
 	{

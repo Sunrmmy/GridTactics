@@ -16,6 +16,7 @@ class USkillComponent;
 class AGridCell;
 class UGridMovementComponent;
 class USkillDataAsset;
+class UAttributesComponent;
 
 UENUM(BlueprintType)
 enum class ECharacterRootState : uint8
@@ -54,6 +55,10 @@ public:
 	// 为角色添加自定义的技能组件
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkillComponent> SkillComponent;
+	// 为角色添加新的属性组件
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAttributesComponent> AttributesComponent;
+
 
 
 	// 根据技能数据的范围模式获取实际的世界坐标范围

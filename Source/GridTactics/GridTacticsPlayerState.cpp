@@ -4,6 +4,7 @@
 #include "GridTacticsPlayerState.h"
 #include "HeroCharacter.h"
 #include "GridMovementComponent.h"
+#include "AttributesComponent.h"
 
 AGridTacticsPlayerState::AGridTacticsPlayerState()
 {
@@ -14,121 +15,145 @@ AGridTacticsPlayerState::AGridTacticsPlayerState()
 void AGridTacticsPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
-	// 初始化当前属性
-	HP = MaxHP;
-	MP = MaxMP;
-	Stamina = MaxStamina;
-	Shield = 0;
+
 }
 
-void AGridTacticsPlayerState::UpdateAttributes(float DeltaTime)
+// 从Pawn获取AttributesComponent
+UAttributesComponent* GetAttributesComponentFromPawn(const APawn* Pawn)
 {
-	UpdateModifiers(DeltaTime);
-
-	// 属性恢复
-	HP = FMath::Min(MaxHP, HP + GetModifiedAttributeValue(EAttributeType::HPRecoveryRate, BaseHPRecoveryRate) * DeltaTime);
-	MP = FMath::Min(MaxMP, MP + GetModifiedAttributeValue(EAttributeType::MPRecoveryRate, BaseMPRecoveryRate) * DeltaTime);
-	Stamina = FMath::Min(MaxStamina, Stamina + GetModifiedAttributeValue(EAttributeType::StaminaRecoveryRate, BaseStaminaRecoveryRate) * DeltaTime);
+	if (!Pawn) return nullptr;
+	return Pawn->FindComponentByClass<UAttributesComponent>();
 }
 
-void AGridTacticsPlayerState::AddAttributeModifier(const FAttributeModifier& Modifier)
+
+// 获取属性Attributes函数的实现
+float AGridTacticsPlayerState::GetHP() const
 {
-	FAttributeModifier NewMod = Modifier;
-	NewMod.TimeRemaining = NewMod.Duration;
-	ActiveModifiers.Add(NewMod);
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetHP();
+	}
+	return 0.0f;
 }
 
-void AGridTacticsPlayerState::RemoveAttributeModifier(const FGuid& ModifierID)
+float AGridTacticsPlayerState::GetMaxHP() const
 {
-	ActiveModifiers.RemoveAll([&ModifierID](const FAttributeModifier& Mod)
-		{
-			return Mod.ID == ModifierID;
-		});
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetMaxHP();
+	}
+	return 0.0f;
+}
+
+float AGridTacticsPlayerState::GetMP() const
+{
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetMP();
+	}
+	return 0.0f;
+}
+
+float AGridTacticsPlayerState::GetMaxMP() const
+{
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetMaxMP();
+	}
+	return 0.0f;
+}
+
+float AGridTacticsPlayerState::GetStamina() const
+{
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetStamina();
+	}
+	return 0.0f;
+}
+
+float AGridTacticsPlayerState::GetMaxStamina() const
+{
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetMaxStamina();
+	}
+	return 0.0f;
 }
 
 float AGridTacticsPlayerState::GetArmor() const
 {
-	return GetModifiedAttributeValue(EAttributeType::Armor, BaseArmor);
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetArmor();
+	}
+	return 0.0f;
 }
 
 float AGridTacticsPlayerState::GetMoveSpeed() const
 {
-	// 获取此PlayerState对应的Pawn
-	if (const AHeroCharacter* HeroCharacter = Cast<AHeroCharacter>(GetPawn()))
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
 	{
-		if(const UGridMovementComponent* MovementComp = HeroCharacter->GetGridMovementComponent())
-		// 从角色获取基础速度，然后计算修改后的值
-		return GetModifiedAttributeValue(EAttributeType::MoveSpeed, MovementComp->GetBaseMoveSpeed());
+		return AttrComp->GetMoveSpeed();
+	}
+	return 0.0f;
+}
+
+float AGridTacticsPlayerState::GetShield() const
+{
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetShield();
+	}
+	return 0.0f;
+}
+
+float AGridTacticsPlayerState::GetMaxShield() const
+{
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		return AttrComp->GetMaxShield();
 	}
 	return 0.0f;
 }
 
 void AGridTacticsPlayerState::ConsumeStamina(float Amount)
 {
-	Stamina = FMath::Max(0.f, Stamina - Amount);
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		AttrComp->ConsumeStamina(Amount);
+	}
 }
+
 void AGridTacticsPlayerState::ConsumeMP(float Amount)
 {
-	MP = FMath::Max(0.f, MP - Amount);
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		AttrComp->ConsumeMP(Amount);
+	}
 }
+
 void AGridTacticsPlayerState::ApplyDamage(float DamageAmount)
 {
-	// 1. 计算经过护甲减免后的最终伤害
-	const float DamageAfterArmor = FMath::Max(0.f, DamageAmount - GetArmor());
-	if (DamageAfterArmor <= 0.f) return; // 护甲完全抵挡了伤害
-
-	// 2. 优先用护盾吸收伤害
-	const float DamageToShield = FMath::Min(Shield, DamageAfterArmor);
-	Shield -= DamageToShield;
-
-	// 3. 剩余的伤害再作用于HP
-	const float DamageToHP = DamageAfterArmor - DamageToShield;
-	HP = FMath::Max(0.f, HP - DamageToHP);
-
-	UE_LOG(LogTemp, Log, TEXT("Damage: %.1f -> Armor Absorbed -> %.1f. Shield took %.1f, HP took %.1f. HP left: %.1f, Shield left: %.1f"),
-		DamageAmount, GetArmor(), DamageToShield, DamageToHP, HP, Shield);
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
+	{
+		AttrComp->ApplyDamage(DamageAmount);
+	}
 }
 
 void AGridTacticsPlayerState::AddShield(float Amount)
 {
-	Shield = FMath::Min(MaxShield, Shield + Amount);
-}
-
-void AGridTacticsPlayerState::UpdateModifiers(float DeltaTime)
-{
-	for (int32 i = ActiveModifiers.Num() - 1; i >= 0; --i)
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
 	{
-		FAttributeModifier& Mod = ActiveModifiers[i];
-		if (Mod.Duration > 0)
-		{
-			Mod.TimeRemaining -= DeltaTime;
-			if (Mod.TimeRemaining <= 0)
-			{
-				ActiveModifiers.RemoveAt(i);
-			}
-		}
+		AttrComp->AddShield(Amount);
 	}
 }
 
 float AGridTacticsPlayerState::GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const
 {
-	float Additive = 0.f;
-	float Multiplicative = 1.f;
-
-	for (const FAttributeModifier& Mod : ActiveModifiers)
+	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))
 	{
-		if (Mod.AttributeToModify == Attribute)
-		{
-			if (Mod.Type == EModifierType::Additive)
-			{
-				Additive += Mod.Value;
-			}
-			else if (Mod.Type == EModifierType::Multiplicative)
-			{
-				Multiplicative *= Mod.Value;
-			}
-		}
+		return AttrComp->GetModifiedAttributeValue(Attribute, BaseValue);
 	}
-
-	return (BaseValue + Additive) * Multiplicative;
+	return BaseValue;
 }

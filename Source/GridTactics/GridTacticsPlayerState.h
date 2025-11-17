@@ -65,31 +65,22 @@ class GRIDTACTICS_API AGridTacticsPlayerState : public APlayerState
 public:
 	AGridTacticsPlayerState();
 
-	// 由Character的Tick调用
-	void UpdateAttributes(float DeltaTime);
-
-	// Modifier Management
+	// 属性定义、修改属性函数 全部迁移到 AttributesComponent
+	// 获取属性Attributes		
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void AddAttributeModifier(const FAttributeModifier& Modifier);
-
+	float GetHP() const;
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	void RemoveAttributeModifier(const FGuid& ModifierID);
-
-	// 获取属性Attributes
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetHP() const { return HP; }
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetMaxHP() const { return MaxHP; }
+	float GetMaxHP() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetMP() const { return MP; }
+	float GetMP() const;
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetMaxMP() const { return MaxMP; }
+	float GetMaxMP() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetStamina() const { return Stamina; }
+	float GetStamina() const;
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetMaxStamina() const { return MaxStamina; }
+	float GetMaxStamina() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	float GetArmor() const;
@@ -98,9 +89,9 @@ public:
 	float GetMoveSpeed() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetShield() const { return Shield; }
+	float GetShield() const;
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetMaxShield() const { return MaxShield; }
+	float GetMaxShield() const;
 
 	//Attribute Setter/Consumer
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
@@ -114,44 +105,8 @@ public:
 
 	float GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const;
 
+
 protected:
 	virtual void BeginPlay() override;
 
-	// Attributes 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float MaxHP = 100.0f;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Attributes|Current")
-	float HP = 100.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseHPRecoveryRate = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float MaxMP = 10.0f;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Attributes|Current")
-	float MP = 10.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseMPRecoveryRate = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float MaxStamina = 5.0f;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Attributes|Current")
-	float Stamina = 5.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseStaminaRecoveryRate = 0.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseArmor = 0.0f;
-
-	// 护盾属性（不可恢复）
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base", meta = (Tooltip = "护盾的最大值"))
-	float MaxShield = 100.0f;
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Attributes|Current", meta = (Tooltip = "当前护盾值"))
-	float Shield = 0.0f;
-
-private:
-	// 属性修改器
-	UPROPERTY()
-	TArray<FAttributeModifier> ActiveModifiers;
-
-	void UpdateModifiers(float DeltaTime);
 };

@@ -6,9 +6,10 @@
 #include "UObject/NoExportTypes.h"
 #include "BaseSkill.generated.h"
 
-class AHeroCharacter;
+class ACharacter;
 class USkillDataAsset;
 class USkillComponent;
+class UAttributesComponent;
 UCLASS(Blueprintable, BlueprintType, Abstract)  //Blueprintable, BlueprintType 通常用于可配置的“Buff 效果类”，既希望被蓝图继承（扩展新 Buff），又希望作为变量传入函数
 class GRIDTACTICS_API UBaseSkill : public UObject
 {
@@ -16,7 +17,7 @@ class GRIDTACTICS_API UBaseSkill : public UObject
 	
 public:
     // 初始化技能，由SkillComponent调用
-    virtual void Initialize(AHeroCharacter* InOwner, const USkillDataAsset* InSkillData);
+    virtual void Initialize(ACharacter* InOwner, const USkillDataAsset* InSkillData);
 
     // 检查技能是否可以被激活
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")  // 允许蓝图子类选择性地覆盖（Override）
@@ -31,11 +32,15 @@ public:
 
 protected:
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
-    TObjectPtr<AHeroCharacter> OwnerCharacter;
+    TObjectPtr<ACharacter> OwnerCharacter;
 
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
     TObjectPtr<const USkillDataAsset> SkillData;
 
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
     TObjectPtr<USkillComponent> OwningComponent;
+
+    // 添加一个缓存的属性组件指针，避免重复查找
+    UPROPERTY(BlueprintReadOnly, Category = "Skill")
+    TObjectPtr<UAttributesComponent> AttributesComp;
 };

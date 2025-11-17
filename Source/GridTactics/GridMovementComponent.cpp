@@ -2,7 +2,7 @@
 
 
 #include "GridMovementComponent.h"
-#include "GridTacticsPlayerState.h"
+#include "AttributesComponent.h"
 #include "GridCell.h"
 #include "GridManager.h"
 #include "GameFramework/Character.h"
@@ -31,8 +31,13 @@ void UGridMovementComponent::BeginPlay()
 	OwnerCharacter = Cast<ACharacter>(GetOwner());
 	if (OwnerCharacter)
 	{
-		GTPlayerState = OwnerCharacter->GetPlayerState<AGridTacticsPlayerState>();
+		// 获取拥有者身上的AttributesComponent
+		AttributesComp = OwnerCharacter->FindComponentByClass<UAttributesComponent>();
 		TargetRotation = OwnerCharacter->GetActorRotation(); // 初始化旋转
+	}
+	if (!AttributesComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GridMovementComponent: AttributesComponent not found on owner!"));
 	}
 
 	// 在游戏开始时找到唯一的GridManager实例
@@ -76,18 +81,15 @@ void UGridMovementComponent::SetTargetRotation(const FRotator& NewRotation)
 
 void UGridMovementComponent::HandleMovement(float DeltaTime)
 {
-	if (!OwnerCharacter) return;
+	if (!OwnerCharacter || !AttributesComp) return;
 
 	FVector Current = OwnerCharacter->GetActorLocation();
 	FVector Target2D = FVector(TargetLocation.X, TargetLocation.Y, Current.Z); // 保持当前高度
 
 	float Dist2D = FVector::DistXY(Current, TargetLocation);
 
-	float CurrentMoveSpeed = BaseMoveSpeed;		// 默认速度
-	if (GTPlayerState) {						// 从PlayerState获取移动速度
-		CurrentMoveSpeed = GTPlayerState->GetMoveSpeed();
-	}
-
+	// 从新的组件获取移动速度
+	const float CurrentMoveSpeed = AttributesComp->GetMoveSpeed();
 	float MoveStep = CurrentMoveSpeed * DeltaTime;
 
 	// 如果下一步会越过目标，直接吸附
@@ -113,12 +115,12 @@ void UGridMovementComponent::HandleMovement(float DeltaTime)
 bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 {
 	// 状态检查移至OnMove
-	if (!OwnerCharacter || !GTPlayerState || !GridManager) return false;
+	if (!OwnerCharacter || !AttributesComp || !GridManager) return false;
 
 	// 检查体力
-	if (GTPlayerState->GetStamina() < 1.0f)
+	if (AttributesComp->GetStamina() < 1.0f)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Not enough stamina to move. Stamina: %f"), GTPlayerState->GetStamina());
+		UE_LOG(LogTemp, Warning, TEXT("Not enough stamina to move. Stamina: %f"), AttributesComp->GetStamina());
 		return false;
 	}
 
@@ -216,8 +218,8 @@ bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 	}
 
 	// 消耗体力并开始移动
-	GTPlayerState->ConsumeStamina(1.0f);
-	UE_LOG(LogTemp, Log, TEXT("Moved. Stamina left: %f"), GTPlayerState->GetStamina());
+	AttributesComp->ConsumeStamina(1.0f);
+	UE_LOG(LogTemp, Log, TEXT("Moved. Stamina left: %f"), AttributesComp->GetStamina());
 	TargetLocation = TargetWorld;
 	CurrentState = EMovementState::Moving; // 设置状态为移动
 	TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DeltaX, DeltaY, 0));		// 面向移动方向
@@ -254,12 +256,22 @@ float UGridMovementComponent::GetCurrentActualSpeed() const
 	// 只在移动状态获取角色速度给动画蓝图
 	if (CurrentState == EMovementState::Moving)
 	{
-		if (GTPlayerState)
+		if (AttributesComp)
 		{
-			return GTPlayerState->GetMoveSpeed();
+			return AttributesComp->GetMoveSpeed();
 		}
-		// 如果PlayerState无效，返回基础速度作为备用
-		return BaseMoveSpeed;
 	}
 	return 0.0f;
+}
+
+float UGridMovementComponent::GetBaseMoveSpeed() const
+{
+	if (AttributesComp)
+	{
+		// 基础速度现在也由AttributesComponent管理
+		// 直接调用它的GetMoveSpeed，因为它内部会处理基础值和Modifier
+		return AttributesComp->GetMoveSpeed();
+	}
+	// 如果组件无效，返回一个安全的默认值
+	return 300.f;
 }
