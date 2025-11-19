@@ -3,8 +3,8 @@
 
 #include "BTTask_UseSkill.h"
 #include "AIController.h"
-#include "../EnemyCharacter.h"
-#include "../SkillComponent.h"
+#include "GridTactics//EnemyCharacter.h"
+#include "GridTactics//SkillComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTTask_UseSkill::UBTTask_UseSkill()

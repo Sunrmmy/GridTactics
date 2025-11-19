@@ -9,6 +9,7 @@
 class UGridMovementComponent;
 class USkillComponent;
 class AEnemyAIController;
+class UAttributesComponent;
 UCLASS()
 class GRIDTACTICS_API AEnemyCharacter : public ACharacter
 {
@@ -26,6 +27,7 @@ public:
 	// 让AI控制器可以获取这些组件来下达指令
 	UGridMovementComponent* GetGridMovementComponent() const { return GridMovementComponent; }
 	USkillComponent* GetSkillComponent() const { return SkillComponent; }
+	UAttributesComponent* GetAttributesComponent() const { return AttributesComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "Animation")
 	float GetCurrentActualSpeed() const;
@@ -38,7 +40,9 @@ protected:
 	TObjectPtr<UGridMovementComponent> GridMovementComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkillComponent> SkillComponent;
-
+	// 为敌人角色添加属性组件
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAttributesComponent> AttributesComponent;
 
 
 };

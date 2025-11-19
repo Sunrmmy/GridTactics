@@ -4,6 +4,7 @@
 #include "EnemyCharacter.h"
 #include "GridMovementComponent.h"
 #include "SkillComponent.h"
+#include "AttributesComponent.h"
 #include "EnemyAIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -20,6 +21,7 @@ AEnemyCharacter::AEnemyCharacter()
 
 	GridMovementComponent = CreateDefaultSubobject<UGridMovementComponent>(TEXT("GridMovementComponent"));
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
+	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>(TEXT("AttributesComponent"));
 
 	// 设置AI控制器来默认附身这个Character
 	AIControllerClass = AEnemyAIController::StaticClass();

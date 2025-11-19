@@ -15,24 +15,32 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	if (BehaviorTree && BehaviorTree->BlackboardAsset)
+	if (!BehaviorTree || !BehaviorTree->BlackboardAsset)
 	{
-		// 使用一个临时的原始指针来调用UseBlackboard
-		UBlackboardComponent* BlackboardComp = BlackboardComponent.Get();
-		if (UseBlackboard(BehaviorTree->BlackboardAsset, BlackboardComp))
+		UE_LOG(LogTemp, Warning, TEXT("AI Controller for %s is missing BehaviorTree or BlackboardAsset!"), *InPawn->GetName());
+		return;
+	}
+
+	// 初始化黑板
+	UBlackboardComponent* BlackboardComp = BlackboardComponent.Get();
+	if (UseBlackboard(BehaviorTree->BlackboardAsset, BlackboardComp))
+	{
+		BlackboardComponent = BlackboardComp;
+
+		// 在初始化成功后，设置初始值，将AI的出生位置设为巡逻中心
+		BlackboardComponent->SetValueAsVector("PatrolCenter", InPawn->GetActorLocation());
+		// 也可以在这里设置其他初始值，例如 SelfActor
+		BlackboardComponent->SetValueAsObject("SelfActor", InPawn);
+
+		// 运行行为树
+		if (!RunBehaviorTree(BehaviorTree))
 		{
-			// 如果UseBlackboard成功，它可能已经修改了BlackboardComp，
-			BlackboardComponent = BlackboardComp;	// 将结果安全地存回我们的TObjectPtr成员变量中。
-			RunBehaviorTree(BehaviorTree);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("AI Controller for %s failed to UseBlackboard!"), *InPawn->GetName());
+			UE_LOG(LogTemp, Error, TEXT("AI Controller for %s failed to RunBehaviorTree!"), *InPawn->GetName());
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AI Controller for %s is missing BehaviorTree or BlackboardAsset!"), *InPawn->GetName());
+		UE_LOG(LogTemp, Error, TEXT("AI Controller for %s failed to UseBlackboard!"), *InPawn->GetName());
 	}
 }
 

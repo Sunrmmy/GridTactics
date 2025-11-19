@@ -3,8 +3,8 @@
 
 #include "BTTask_MoveToGrid.h"
 #include "AIController.h"
-#include "../EnemyCharacter.h"
-#include "../GridMovementComponent.h"
+#include "GridTactics/EnemyCharacter.h"
+#include "GridTactics//GridMovementComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Actor.h"
 
@@ -55,6 +55,16 @@ EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& Owne
 	if (!TargetActor)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BTTask_MoveToGrid: TargetActor from Blackboard is NULL."));
+		return EBTNodeResult::Failed;
+	}
+	const FVector EnemyLocation = EnemyChar->GetActorLocation();
+	const FVector TargetLocation = TargetActor->GetActorLocation();
+	UE_LOG(LogTemp, Log, TEXT("BTTask_MoveToGrid: Calculating direction from Enemy at %s to Target at %s"), *EnemyLocation.ToString(), *TargetLocation.ToString());
+
+	// 检查目标位置是否有效
+	if (TargetLocation == FVector::ZeroVector)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BTTask_MoveToGrid: Target Actor '%s' is at location (0,0,0)! Check if it's spawned correctly."), *TargetActor->GetName());
 		return EBTNodeResult::Failed;
 	}
 
