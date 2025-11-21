@@ -10,6 +10,7 @@ class UGridMovementComponent;
 class USkillComponent;
 class AEnemyAIController;
 class UAttributesComponent;
+class UWidgetComponent;
 UCLASS()
 class GRIDTACTICS_API AEnemyCharacter : public ACharacter
 {
@@ -44,5 +45,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAttributesComponent> AttributesComponent;
 
+
+	// 属性显示UI（在蓝图中指定头顶属性显示UI空间类）
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UUserWidget> HealthBarWidgetClass;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
 
 };

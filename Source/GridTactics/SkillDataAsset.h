@@ -50,4 +50,17 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给自己的效果"))
 	TArray<FAttributeModifier> SelfModifiers;
+
+	// 技能的位移属性
+	// 角色向前移动距离
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Movement", meta = (ClampMin = "0"))
+	int32 MovementDistance = 0;
+
+	// 如果为true，此技能需要玩家在范围内选择一个目标格子来释放，而不是只选择方向
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
+	bool bRequiresTargetGrid = false;
+
+	// 如果是位移技能，定义最大可以移动的格子距离。0表示没有范围限制
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic", meta = (EditCondition = "bRequiresTargetGrid", ClampMin = "0"))
+	int32 MaxMovementRange = 5;
 };
