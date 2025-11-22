@@ -12,7 +12,8 @@ UENUM(BlueprintType)
 enum class EMovementState : uint8
 {
 	Idle,
-	Moving
+	Moving,
+	ForcedMoving // 强制位移状态（冲锋、击退等）
 };
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GRIDTACTICS_API UGridMovementComponent : public UActorComponent
@@ -36,11 +37,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void GetCurrentGrid(int32& OutX, int32& OutY) const;
 
+	// 获取指定网格上的Actor（用于技能检测碰撞）
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	AActor* GetActorAtGrid(int32 GridX, int32 GridY) const;
+
 	UFUNCTION(BlueprintPure, Category = "Movement")
-	bool IsMoving() const { return CurrentState == EMovementState::Moving; }
+	bool IsMoving() const { return CurrentState == EMovementState::Moving || CurrentState == EMovementState::ForcedMoving;; }
 
 	// 尝试向某一方向移动一格
 	bool TryMoveOneStep(int32 DeltaX, int32 DeltaY);
+
+	// 执行强制位移
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void ExecuteForcedMove(FIntPoint TargetGrid, float Duration);
+	// 接收击退效果
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void ReceiveKnockback(FIntPoint KnockbackDirection, int32 Distance = 1);
+	// 检查指定格子是否可行走 (暴露给技能使用)
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	bool IsGridWalkable(int32 X, int32 Y) const;
+
 
 	// 设置期望的旋转
 	UFUNCTION(BlueprintCallable, Category = "Movement")
@@ -92,4 +108,10 @@ private:
 	TSubclassOf<AGridManager> GridManagerClass;
 	// 记录当前正在移动的目标网格，以便在移动结束后释放
 	FIntPoint CurrentTargetGrid;
+
+
+	// 强制位移相关
+	float ForcedMoveTotalTime = 0.0f;
+	float ForcedMoveElapsedTime = 0.0f;
+	FVector ForcedMoveStartLocation;
 };

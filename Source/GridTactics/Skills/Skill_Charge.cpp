@@ -2,99 +2,92 @@
 
 
 #include "Skill_Charge.h"
-#include "GameFramework/Character.h"
 #include "GridTactics/SkillDataAsset.h"
 #include "GridTactics/GridMovementComponent.h"
 #include "GridTactics/AttributesComponent.h"
 #include "GridTactics/HeroCharacter.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-void USkill_Charge::Activate_Implementation() {
-	if (!CanActivate_Implementation()) return;
+void USkill_Charge::Activate_Implementation()
+{
+	if (!OwnerCharacter || !SkillData) return;
 
-	if (AttributesComp) {
-		AttributesComp->ConsumeStamina(SkillData->StaminaCost);
-		AttributesComp->ConsumeMP(SkillData->MPCost);
-	}
-	UE_LOG(LogTemp, Warning, TEXT("Charge Skill '%s' Activated!"), *SkillData->SkillName.ToString());
-
-	// 获取移动组件并计算目标位置
-	UGridMovementComponent* MovementComp = OwnerCharacter->FindComponentByClass<UGridMovementComponent>();
-	if (!MovementComp) return;
-
-	// 如果技能没有设置位移距离，则直接在原地造成伤害
-	if (SkillData->MovementDistance <= 0)
+	UGridMovementComponent* GridComp = OwnerCharacter->FindComponentByClass<UGridMovementComponent>();
+	if (!GridComp)
 	{
-		Super::Activate_Implementation(); // 直接调用父类的范围伤害逻辑
 		return;
 	}
 
-	// 计算冲锋方向 (基于角色当前朝向)
-	const FVector ForwardVector = OwnerCharacter->GetActorForwardVector();
-	const int32 DeltaX = FMath::RoundToInt(ForwardVector.X);
-	const int32 DeltaY = FMath::RoundToInt(ForwardVector.Y);
+	// 确定冲锋方向 (基于角色当前Actor Forward Vector)
+	FVector Forward = OwnerCharacter->GetActorForwardVector();
 
-	// 执行位移
-		// 我们直接调用GridMovementComponent的函数来移动角色
-		// 注意：这里我们假设TryMoveOneStep可以被连续调用来完成长距离移动
-		// 为了实现更平滑的冲锋，未来可以考虑在GridMovementComponent中增加一个DashToGrid的专用函数
-		for (int32 i = 0; i < SkillData->MovementDistance; ++i)
-		{
-			// 尝试向目标方向移动一格
-			// 如果中途遇到障碍物或敌人，移动会失败，冲锋会停在障碍物前
-			if (!MovementComp->TryMoveOneStep(DeltaX, DeltaY))
-			{
-				break; // 移动失败，停止冲锋
-			}
-		}
+	int32 DirX = 0;
+	int32 DirY = 0;
 
-	// --- 4. 在新位置造成伤害 ---
-	// 移动完成后，我们再执行范围伤害逻辑。
-	// 这里的代码与BaseSkill::Activate_Implementation中的伤害部分几乎完全一样。
-	// 为了代码复用，未来可以将其提取到一个独立的辅助函数中。
-	TArray<FIntPoint> WorldGrids;
-	if (auto GridTacticsChar = Cast<AHeroCharacter>(OwnerCharacter))
+	// 简单的向量转网格方向逻辑
+	if (FMath::Abs(Forward.X) > FMath::Abs(Forward.Y))
 	{
-		WorldGrids = GridTacticsChar->GetSkillRangeInWorld(SkillData->RangePattern);
+		DirX = (Forward.X > 0) ? 1 : -1;
 	}
 	else
 	{
-		// 处理AI等其他角色类型
+		DirY = (Forward.Y > 0) ? 1 : -1;
+	}
+	FIntPoint ChargeDirection(DirX, DirY); // 冲锋方向单位向量
+
+	// 获取起始位置和冲锋距离
+	int32 StartX, StartY;
+	GridComp->GetCurrentGrid(StartX, StartY);
+	FIntPoint CurrentGrid(StartX, StartY);
+
+	int32 MaxDistance = SkillData->MovementDistance; // 从SkillDataAsset中读取配置的移动距离
+	if (MaxDistance < 0) MaxDistance = 0; // 默认值保护
+
+	FIntPoint TargetGrid = CurrentGrid;
+
+	// 路径遍历检测，预先计算路径，处理碰撞逻辑
+	for (int32 i = 1; i <= MaxDistance; ++i)
+	{
+		FIntPoint CheckGrid = CurrentGrid + ChargeDirection * i;
+
+		// 检查Block网格
+		if (!GridComp->IsGridWalkable(CheckGrid.X, CheckGrid.Y))
+		{
+			// 遇到墙壁，停止检测，最终位置保持在上一格
+			UE_LOG(LogTemp, Log, TEXT("Charge hit wall at step %d"), i);
+			break;
+		}
+
+		// 检测该格子是否有敌人 (需要GridMovementComponent实现GetActorAtGrid)
+		AActor* HitActor = GridComp->GetActorAtGrid(CheckGrid.X, CheckGrid.Y);
+
+		if (HitActor && HitActor != OwnerCharacter)
+		{
+			// 造成伤害
+			if (UAttributesComponent* TargetAttrs = HitActor->FindComponentByClass<UAttributesComponent>())
+			{
+				TargetAttrs->ApplyDamage(SkillData->Damage);
+			}
+
+			// 击退敌人 (向冲锋方向击退)
+			if (UGridMovementComponent* TargetGridComp = HitActor->FindComponentByClass<UGridMovementComponent>())
+			{
+				// 调用击退接口，参数为击退方向
+				TargetGridComp->ReceiveKnockback(ChargeDirection, 4);
+			}
+
+			// 如果该格子可行走（即使有敌人，因为敌人被推走了），我们视为可通过
+			TargetGrid = CheckGrid;
+			UE_LOG(LogTemp, Log, TEXT("Charge hit actor: %s at (%d, %d)"), *HitActor->GetName(), CheckGrid.X, CheckGrid.Y);
+		}
+		TargetGrid = CheckGrid;
 	}
 
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(OwnerCharacter);
-
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
-
-	TSet<AActor*> DamagedActors;
-
-	for (const FIntPoint& Grid : WorldGrids)
+	// 执行角色自身的强制位移
+	if (TargetGrid != CurrentGrid)
 	{
-		FVector WorldLocation = MovementComp->GridToWorld(Grid.X, Grid.Y);
-		TArray<AActor*> OverlappedActors;
-
-		UKismetSystemLibrary::SphereOverlapActors(
-			GetWorld(),
-			WorldLocation,
-			50.0f,
-			ObjectTypes,
-			nullptr,
-			ActorsToIgnore,
-			OverlappedActors
-		);
-
-		for (AActor* OverlappedActor : OverlappedActors)
-		{
-			if (!DamagedActors.Contains(OverlappedActor))
-			{
-				if (UAttributesComponent* TargetAttrs = OverlappedActor->FindComponentByClass<UAttributesComponent>())
-				{
-					TargetAttrs->ApplyDamage(SkillData->Damage);
-					DamagedActors.Add(OverlappedActor);
-				}
-			}
-		}
+		// 计算位移所需时间，距离越远时间越长，保持冲锋速度感
+		float Duration = 0.15f * FMath::Sqrt((float)MaxDistance);
+		GridComp->ExecuteForcedMove(TargetGrid, Duration);
 	}
 }

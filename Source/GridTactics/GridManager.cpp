@@ -38,6 +38,12 @@ bool AGridManager::ReserveGrid(AActor* Requester, FIntPoint TargetGrid)
     return true;
 }
 
+void AGridManager::ForceReserveGrid(AActor* Requester, FIntPoint TargetGrid)
+{
+    // 强制覆盖预定（如果有之前的预定，直接覆盖）
+    GridReservations.Add(TargetGrid, Requester);
+}
+
 void AGridManager::ReleaseGrid(FIntPoint GridToRelease)
 {
     GridReservations.Remove(GridToRelease);

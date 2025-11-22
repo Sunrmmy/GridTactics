@@ -21,6 +21,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	bool ReserveGrid(AActor* Requester, FIntPoint TargetGrid);
 
+	// 强制预定网格（用于击退或技能位移，会覆盖原有的预定）
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	void ForceReserveGrid(AActor* Requester, FIntPoint TargetGrid);
+
 	// 移动完成或者取消时释放预定的网格
 	UFUNCTION(BlueprintCallable, Category = "Grid")
 	void ReleaseGrid(FIntPoint TargetGrid);
