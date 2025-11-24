@@ -1,93 +1,232 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Skill_Charge.h"
+#include "GridTactics/GridManager.h"
+#include "GridTactics/GridDisplacementRequest.h"
 #include "GridTactics/SkillDataAsset.h"
 #include "GridTactics/GridMovementComponent.h"
 #include "GridTactics/AttributesComponent.h"
 #include "GridTactics/HeroCharacter.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
+
+USkill_Charge::USkill_Charge()
+{
+    // å…¨éƒ¨ä» SkillDataAsset è·å–
+}
+
+bool USkill_Charge::CanActivate_Implementation()
+{
+    // è°ƒç”¨çˆ¶ç±»çš„åŸºç¡€æ£€æŸ¥
+    if (!Super::CanActivate_Implementation())
+    {
+        return false;
+    }
+
+    // æ£€æŸ¥æ˜¯å¦æ­£åœ¨ç§»åŠ¨
+    if (UGridMovementComponent* MovementComp = OwnerCharacter->FindComponentByClass<UGridMovementComponent>())
+    {
+        if (MovementComp->IsMoving() || MovementComp->IsExecutingDisplacement())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Skill_Charge: Cannot activate while moving!"));
+            return false;
+        }
+    }
+
+    // æ£€æŸ¥æ˜¯å¦æœ‰æœ‰æ•ˆçš„å†²åˆºæ–¹å‘
+    FIntPoint ChargeDir = GetChargeDirection();
+    if (ChargeDir == FIntPoint::ZeroValue)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Skill_Charge: Invalid charge direction!"));
+        return false;
+    }
+
+    // æ£€æŸ¥ SkillDataAsset æ˜¯å¦æœ‰æ•ˆ
+    if (!SkillData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Skill_Charge: SkillData is null!"));
+        return false;
+    }
+
+    return true;
+}
 
 void USkill_Charge::Activate_Implementation()
 {
-	if (!OwnerCharacter || !SkillData) return;
+    if (!CanActivate_Implementation())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Skill_Charge: CanActivate failed!"));
+        return;
+    }
 
-	UGridMovementComponent* GridComp = OwnerCharacter->FindComponentByClass<UGridMovementComponent>();
-	if (!GridComp)
-	{
-		return;
-	}
+    // è·å– GridManager
+    AGridManager* GridMgr = GetGridManager();
+    if (!GridMgr)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Skill_Charge: GridManager not found!"));
+        return;
+    }
 
-	// È·¶¨³å·æ·½Ïò (»ùÓÚ½ÇÉ«µ±Ç°Actor Forward Vector)
-	FVector Forward = OwnerCharacter->GetActorForwardVector();
+    // æ£€æŸ¥ SkillDataAsset
+    if (!SkillData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Skill_Charge: SkillData is null!"));
+        return;
+    }
 
-	int32 DirX = 0;
-	int32 DirY = 0;
+    // è°ƒç”¨çˆ¶ç±»çš„åŸºç¡€é€»è¾‘ï¼ˆæ¶ˆè€—èµ„æºã€è§¦å‘å†·å´ï¼‰
+    Super::Activate_Implementation();
 
-	// ¼òµ¥µÄÏòÁ¿×ªÍø¸ñ·½ÏòÂß¼­
-	if (FMath::Abs(Forward.X) > FMath::Abs(Forward.Y))
-	{
-		DirX = (Forward.X > 0) ? 1 : -1;
-	}
-	else
-	{
-		DirY = (Forward.Y > 0) ? 1 : -1;
-	}
-	FIntPoint ChargeDirection(DirX, DirY); // ³å·æ·½Ïòµ¥Î»ÏòÁ¿
+    // è®¡ç®—å†²åˆºæ–¹å‘
+    FIntPoint ChargeDir = GetChargeDirection();
+    if (ChargeDir == FIntPoint::ZeroValue)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Skill_Charge: Failed to determine charge direction!"));
+        return;
+    }
 
-	// »ñÈ¡ÆğÊ¼Î»ÖÃºÍ³å·æ¾àÀë
-	int32 StartX, StartY;
-	GridComp->GetCurrentGrid(StartX, StartY);
-	FIntPoint CurrentGrid(StartX, StartY);
+    // ä» SkillDataAsset è·å–æŠ€èƒ½å‚æ•°
+    const int32 DashDistance = SkillData->DashDistance;
+    const int32 KnockbackDistance = SkillData->KnockbackDistance;
+    const bool bStopOnCollision = SkillData->bStopOnCollision;
+    const float ChargeDuration = SkillData->ChargeDuration;
 
-	int32 MaxDistance = SkillData->MovementDistance; // ´ÓSkillDataAssetÖĞ¶ÁÈ¡ÅäÖÃµÄÒÆ¶¯¾àÀë
-	if (MaxDistance < 0) MaxDistance = 0; // Ä¬ÈÏÖµ±£»¤
+    UE_LOG(LogTemp, Log, TEXT("âœ“ Skill_Charge: Charging in direction %s for %d grids (Knockback: %d)"),
+        *ChargeDir.ToString(), DashDistance, KnockbackDistance);
 
-	FIntPoint TargetGrid = CurrentGrid;
+    // ç®€åŒ–åçš„å†²åˆºè¯·æ±‚
+    GridMgr->RequestDash(
+        OwnerCharacter,
+        ChargeDir,
+        DashDistance,
+        true,
+        KnockbackDistance
+    );
 
-	// Â·¾¶±éÀú¼ì²â£¬Ô¤ÏÈ¼ÆËãÂ·¾¶£¬´¦ÀíÅö×²Âß¼­
-	for (int32 i = 1; i <= MaxDistance; ++i)
-	{
-		FIntPoint CheckGrid = CurrentGrid + ChargeDirection * i;
+    GridMgr->ProcessDisplacements();
 
-		// ¼ì²éBlockÍø¸ñ
-		if (!GridComp->IsGridWalkable(CheckGrid.X, CheckGrid.Y))
-		{
-			// Óöµ½Ç½±Ú£¬Í£Ö¹¼ì²â£¬×îÖÕÎ»ÖÃ±£³ÖÔÚÉÏÒ»¸ñ
-			UE_LOG(LogTemp, Log, TEXT("Charge hit wall at step %d"), i);
-			break;
-		}
+    // æ’­æ”¾å†²åˆºéŸ³æ•ˆ/ç‰¹æ•ˆ
+    // UGameplayStatics::PlaySoundAtLocation(GetWorld(), ChargeSound, OwnerCharacter->GetActorLocation());
+}
 
-		// ¼ì²â¸Ã¸ñ×ÓÊÇ·ñÓĞµĞÈË (ĞèÒªGridMovementComponentÊµÏÖGetActorAtGrid)
-		AActor* HitActor = GridComp->GetActorAtGrid(CheckGrid.X, CheckGrid.Y);
+// ========================================
+// è¾…åŠ©å‡½æ•°å®ç°
+// ========================================
 
-		if (HitActor && HitActor != OwnerCharacter)
-		{
-			// Ôì³ÉÉËº¦
-			if (UAttributesComponent* TargetAttrs = HitActor->FindComponentByClass<UAttributesComponent>())
-			{
-				TargetAttrs->ApplyDamage(SkillData->Damage);
-			}
+AGridManager* USkill_Charge::GetGridManager() const
+{
+    if (!OwnerCharacter || !OwnerCharacter->GetWorld())
+    {
+        return nullptr;
+    }
 
-			// »÷ÍËµĞÈË (Ïò³å·æ·½Ïò»÷ÍË)
-			if (UGridMovementComponent* TargetGridComp = HitActor->FindComponentByClass<UGridMovementComponent>())
-			{
-				// µ÷ÓÃ»÷ÍË½Ó¿Ú£¬²ÎÊıÎª»÷ÍË·½Ïò
-				TargetGridComp->ReceiveKnockback(ChargeDirection, 4);
-			}
+    return Cast<AGridManager>(
+        UGameplayStatics::GetActorOfClass(OwnerCharacter->GetWorld(), AGridManager::StaticClass())
+    );
+}
 
-			// Èç¹û¸Ã¸ñ×Ó¿ÉĞĞ×ß£¨¼´Ê¹ÓĞµĞÈË£¬ÒòÎªµĞÈË±»ÍÆ×ßÁË£©£¬ÎÒÃÇÊÓÎª¿ÉÍ¨¹ı
-			TargetGrid = CheckGrid;
-			UE_LOG(LogTemp, Log, TEXT("Charge hit actor: %s at (%d, %d)"), *HitActor->GetName(), CheckGrid.X, CheckGrid.Y);
-		}
-		TargetGrid = CheckGrid;
-	}
+FIntPoint USkill_Charge::GetChargeDirection() const
+{
+    if (!OwnerCharacter)
+    {
+        return FIntPoint::ZeroValue;
+    }
 
-	// Ö´ĞĞ½ÇÉ«×ÔÉíµÄÇ¿ÖÆÎ»ÒÆ
-	if (TargetGrid != CurrentGrid)
-	{
-		// ¼ÆËãÎ»ÒÆËùĞèÊ±¼ä£¬¾àÀëÔ½Ô¶Ê±¼äÔ½³¤£¬±£³Ö³å·æËÙ¶È¸Ğ
-		float Duration = 0.15f * FMath::Sqrt((float)MaxDistance);
-		GridComp->ExecuteForcedMove(TargetGrid, Duration);
-	}
+    // ä¼˜å…ˆä½¿ç”¨é¼ æ ‡æ–¹å‘ï¼ˆå¦‚æœæœ‰ç©å®¶æ§åˆ¶å™¨ï¼‰
+    if (OwnerCharacter->IsPlayerControlled())
+    {
+        FIntPoint MouseDir = GetDirectionFromMouse();
+        if (MouseDir != FIntPoint::ZeroValue)
+        {
+            return MouseDir;
+        }
+    }
+
+    // å›é€€æ–¹æ¡ˆï¼šä½¿ç”¨è§’è‰²å½“å‰æœå‘
+    return GetDirectionFromRotation();
+}
+
+FIntPoint USkill_Charge::GetDirectionFromRotation() const
+{
+    if (!OwnerCharacter)
+    {
+        return FIntPoint::ZeroValue;
+    }
+
+    // è·å–è§’è‰²å½“å‰æœå‘
+    FRotator CurrentRotation = OwnerCharacter->GetActorRotation();
+    FVector ForwardVector = CurrentRotation.Vector();
+
+    // å½’ä¸€åŒ–ä¸ºå››æ–¹å‘
+    int32 DirX = 0;
+    int32 DirY = 0;
+
+    if (FMath::Abs(ForwardVector.X) > FMath::Abs(ForwardVector.Y))
+    {
+        // X è½´ä¸ºä¸»å¯¼
+        DirX = (ForwardVector.X > 0) ? 1 : -1;
+    }
+    else if (FMath::Abs(ForwardVector.Y) > 0.01f)
+    {
+        // Y è½´ä¸ºä¸»å¯¼
+        DirY = (ForwardVector.Y > 0) ? 1 : -1;
+    }
+
+    return FIntPoint(DirX, DirY);
+}
+
+FIntPoint USkill_Charge::GetDirectionFromMouse() const
+{
+    if (!OwnerCharacter)
+    {
+        return FIntPoint::ZeroValue;
+    }
+
+    // è·å–ç©å®¶æ§åˆ¶å™¨
+    APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+    if (!PC)
+    {
+        return FIntPoint::ZeroValue;
+    }
+
+    // è·å–é¼ æ ‡åœ¨ä¸–ç•Œä¸­çš„ä½ç½®
+    FVector WorldLocation, WorldDirection;
+    PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+    // è®¡ç®—é¼ æ ‡æŒ‡å‘çš„åœ°é¢ä½ç½®
+    FVector PlaneOrigin = OwnerCharacter->GetActorLocation();
+    FVector MouseGroundPos = FMath::LinePlaneIntersection(
+        WorldLocation,
+        WorldLocation + WorldDirection * 10000.f,
+        PlaneOrigin,
+        FVector::UpVector
+    );
+
+    // è®¡ç®—ä»è§’è‰²åˆ°é¼ æ ‡ä½ç½®çš„æ–¹å‘å‘é‡
+    FVector DirToMouse = (MouseGroundPos - OwnerCharacter->GetActorLocation()).GetSafeNormal();
+
+    // ç¦»æ•£åŒ–ä¸ºå››ä¸ªä¸»æ–¹å‘ä¹‹ä¸€
+    int32 DirX = 0;
+    int32 DirY = 0;
+
+    if (FMath::Abs(DirToMouse.X) > FMath::Abs(DirToMouse.Y))
+    {
+        // X è½´ä¸ºä¸»å¯¼æ–¹å‘
+        DirX = (DirToMouse.X > 0) ? 1 : -1;
+        DirY = 0;
+    }
+    else if (FMath::Abs(DirToMouse.Y) > 0.01f)
+    {
+        // Y è½´ä¸ºä¸»å¯¼æ–¹å‘
+        DirX = 0;
+        DirY = (DirToMouse.Y > 0) ? 1 : -1;
+    }
+    else
+    {
+        // æ–¹å‘å‘é‡å¤ªå°ï¼Œæ— æ³•ç¡®å®šæ–¹å‘
+        return FIntPoint::ZeroValue;
+    }
+
+    return FIntPoint(DirX, DirY);
 }

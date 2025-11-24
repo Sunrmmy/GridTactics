@@ -5,8 +5,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "NavigationSystem.h"
 #include "AIController.h"
-#include "../../EnemyCharacter.h"
-#include "../../GridMovementComponent.h"
+#include "GridTactics/EnemyCharacter.h"
+#include "GridTactics/GridMovementComponent.h"
 
 UBTTask_FindPatrolLocation::UBTTask_FindPatrolLocation()
 {

@@ -31,4 +31,8 @@ protected:
 	// 用于在编辑器中选择黑板中的目标Actor（例如玩家）
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetActorKey;
+
+	// 用于在编辑器中选择黑板中的目标位置（例如巡逻点）
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector TargetLocationKey;
 };

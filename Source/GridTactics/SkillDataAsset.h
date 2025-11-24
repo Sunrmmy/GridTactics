@@ -52,15 +52,37 @@ public:
 	TArray<FAttributeModifier> SelfModifiers;
 
 	// 技能的位移属性
-	// 角色向前移动距离
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Movement", meta = (ClampMin = "0"))
 	int32 MovementDistance = 0;
 
-	// 如果为true，此技能需要玩家在范围内选择一个目标格子来释放，而不是只选择方向
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
 	bool bRequiresTargetGrid = false;
 
-	// 如果是位移技能，定义最大可以移动的格子距离。0表示没有范围限制
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic", meta = (EditCondition = "bRequiresTargetGrid", ClampMin = "0"))
 	int32 MaxMovementRange = 5;
+
+	// 冲锋属性
+	// 冲刺距离（网格数）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 DashDistance = 3;
+
+	// 击退距离（网格数）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "5"))
+	int32 KnockbackDistance = 2;
+
+	// 是否在碰撞后停止（false=穿透）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
+	bool bStopOnCollision = true;
+
+	// 是否启用链式击退
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
+	bool bEnableChainKnockback = false;
+
+	// 冲刺持续时间（秒）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0.1", ClampMax = "2.0"))
+	float ChargeDuration = 0.3f;
+
+	// 对被撞击敌人造成的额外伤害（叠加到 Damage）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0"))
+	float CollisionDamage = 0.0f;
 };

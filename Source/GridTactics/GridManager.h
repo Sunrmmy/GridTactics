@@ -4,8 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GridDisplacementRequest.h"
 #include "GridManager.generated.h"
 
+class UPathPlanner;
+class UConflictResolver;
 UCLASS()
 class GRIDTACTICS_API AGridManager : public AActor
 {
@@ -17,25 +20,82 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// 请求预定一个网格用于移动（解决竞态条件）
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	bool ReserveGrid(AActor* Requester, FIntPoint TargetGrid);
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    bool ReserveGrid(AActor* Requester, FIntPoint TargetGrid);
 
-	// 强制预定网格（用于击退或技能位移，会覆盖原有的预定）
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	void ForceReserveGrid(AActor* Requester, FIntPoint TargetGrid);
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void ForceReserveGrid(AActor* Requester, FIntPoint TargetGrid);
 
-	// 移动完成或者取消时释放预定的网格
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	void ReleaseGrid(FIntPoint TargetGrid);
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void ReleaseGrid(FIntPoint TargetGrid);
+
+    UFUNCTION(BlueprintCallable, Category = "Grid|Displacement")
+    void RequestDash(AActor* Requester, FIntPoint Direction, int32 Distance,
+        bool bCanKnockback = false, int32 KnockbackDist = 1
+    );
+
+    UFUNCTION(BlueprintCallable, Category = "Grid|Displacement")
+    void RequestTeleport(AActor* Requester, FIntPoint TargetGrid);
+
+    UFUNCTION(BlueprintCallable, Category = "Grid|Displacement")
+    void RequestKnockback(AActor* Target, FIntPoint Direction, int32 Distance);
+
+    UFUNCTION(BlueprintCallable, Category = "Grid|Displacement")
+    void ProcessDisplacements();
+
+    // --- 新增接口 ---
+
+    // 提交自定义请求（高级用法）
+    UFUNCTION(BlueprintCallable, Category = "Grid|Displacement")
+    void SubmitCustomRequest(const FGridDisplacementRequest& Request);
+
+    // 批量处理（异步，返回完成事件）
+    UFUNCTION(BlueprintCallable, Category = "Grid|Displacement")
+    void ProcessDisplacementsAsync();
+
+    // 工具函数
+    UFUNCTION(BlueprintPure, Category = "Grid")
+    bool IsGridValid(FIntPoint Grid) const;
+
+    UFUNCTION(BlueprintPure, Category = "Grid")
+    bool IsGridWalkable(FIntPoint Grid) const;
+
+    UFUNCTION(BlueprintPure, Category = "Grid")
+    AActor* GetActorAtGrid(FIntPoint Grid) const;
+
+    UFUNCTION(BlueprintPure, Category = "Grid")
+    FIntPoint GetActorCurrentGrid(AActor* Actor) const;
+
+    UFUNCTION(BlueprintPure, Category = "Grid")
+    FVector GridToWorld(FIntPoint Grid) const;
+
+    UFUNCTION(BlueprintPure, Category = "Grid")
+    FIntPoint WorldToGrid(FVector WorldPos) const;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private:
-	// 存储每个网格被哪个Actor预定了	Key: 网格坐标, Value: 预定该网格的Actor
-	UPROPERTY()
-	TMap<FIntPoint, TObjectPtr<AActor>> GridReservations;
+    UPROPERTY()
+    TMap<FIntPoint, TObjectPtr<AActor>> GridReservations;
 
+    UPROPERTY()
+    TArray<FGridDisplacementRequest> PendingDisplacements;
+
+    // 递归深度限制（防止无限链式击退）
+    UPROPERTY(EditDefaultsOnly, Category = "Displacement")
+    int32 MaxKnockbackRecursionDepth = 3;
+
+    int32 CurrentRecursionDepth = 0;
+
+    // --- 核心管线 ---
+    void PlanAllPaths();
+    void ResolveAllConflicts();
+    void ExecuteAllDisplacements();
+
+    // 辅助函数
+    void HandleKnockbackFailure(AActor* Target, FIntPoint BlockedGrid,
+        EKnockbackBlockReason Reason);
+    void ProcessKnockbackQueue(TArray<FGridDisplacementRequest>& KnockbackQueue);
 };

@@ -30,7 +30,11 @@ AGridCell::AGridCell()
 void AGridCell::BeginPlay()
 {
 	Super::BeginPlay();
-	
+    FVector WorldPos = GetActorLocation();
+    GridCoordinate.X = FMath::RoundToInt(WorldPos.X / GridSizeCM);
+    GridCoordinate.Y = FMath::RoundToInt(WorldPos.Y / GridSizeCM);
+
+    UE_LOG(LogTemp, Log, TEXT("GridCell at %s"), *GridCoordinate.ToString());
 }
 
 // Called every frame

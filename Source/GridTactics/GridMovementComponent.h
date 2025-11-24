@@ -12,8 +12,8 @@ UENUM(BlueprintType)
 enum class EMovementState : uint8
 {
 	Idle,
-	Moving,
-	ForcedMoving // 强制位移状态（冲锋、击退等）
+	Moving,				// WASD移动
+	DisplacementMoving  // 位移技能移
 };
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GRIDTACTICS_API UGridMovementComponent : public UActorComponent
@@ -27,91 +27,84 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	// 世界坐标与网格坐标转换
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	bool WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) const;
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	FVector GridToWorld(int32 X, int32 Y) const;
+    // --- 原有接口（保持兼容） ---
 
-	// 获取当前角色所在的网格坐标
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	void GetCurrentGrid(int32& OutX, int32& OutY) const;
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    bool WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) const;
 
-	// 获取指定网格上的Actor（用于技能检测碰撞）
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	AActor* GetActorAtGrid(int32 GridX, int32 GridY) const;
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    FVector GridToWorld(int32 X, int32 Y) const;
 
-	UFUNCTION(BlueprintPure, Category = "Movement")
-	bool IsMoving() const { return CurrentState == EMovementState::Moving || CurrentState == EMovementState::ForcedMoving;; }
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void GetCurrentGrid(int32& OutX, int32& OutY) const;
 
-	// 尝试向某一方向移动一格
-	bool TryMoveOneStep(int32 DeltaX, int32 DeltaY);
+    UFUNCTION(BlueprintPure, Category = "Movement")
+    bool IsMoving() const { return CurrentState != EMovementState::Idle; }
 
-	// 执行强制位移
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void ExecuteForcedMove(FIntPoint TargetGrid, float Duration);
-	// 接收击退效果
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void ReceiveKnockback(FIntPoint KnockbackDirection, int32 Distance = 1);
-	// 检查指定格子是否可行走 (暴露给技能使用)
-	UFUNCTION(BlueprintCallable, Category = "Grid")
-	bool IsGridWalkable(int32 X, int32 Y) const;
+    bool TryMoveOneStep(int32 DeltaX, int32 DeltaY);
 
+    // 设置目标旋转（供 HeroCharacter 使用）
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void SetTargetRotation(const FRotator& NewRotation) { TargetRotation = NewRotation; }
+    // 获取当前移动速度（供动画蓝图使用）
+    UFUNCTION(BlueprintPure, Category = "Movement")
+    float GetCurrentActualSpeed() const;
 
-	// 设置期望的旋转
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void SetTargetRotation(const FRotator& NewRotation);
+    // --- 新接口：位移系统 ---
 
-	// 返回角色当前的实际移动速度，用于动画蓝图
-	UFUNCTION(BlueprintPure, Category = "Movement")
-	float GetCurrentActualSpeed() const;
+    /**
+     * 执行位移路径（由GridManager调用）
+     * @param Path 网格路径
+     * @param Duration 总执行时间
+     */
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void ExecuteDisplacementPath(const TArray<FIntPoint>& Path, float Duration);
 
-	UFUNCTION(BlueprintPure, Category = "Movement")
-	float GetBaseMoveSpeed() const;
+    /**
+     * 是否正在执行位移
+     */
+    UFUNCTION(BlueprintPure, Category = "Movement")
+    bool IsExecutingDisplacement() const { return CurrentState == EMovementState::DisplacementMoving; }
+
+    /**
+     * 立即停止位移
+     */
+    UFUNCTION(BlueprintCallable, Category = "Movement")
+    void StopDisplacement();
 
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
 private:
-	// Tick中调用的状态处理函数
-	void HandleMovement(float DeltaTime);
+    UPROPERTY()
+    TObjectPtr<ACharacter> OwnerCharacter;
 
-	UPROPERTY()
-	ACharacter* OwnerCharacter;
+    UPROPERTY()
+    TObjectPtr<class UAttributesComponent> AttributesComp;
 
-	// 属性组件引用
-	UPROPERTY()
-	TObjectPtr<UAttributesComponent> AttributesComp;
+    EMovementState CurrentState = EMovementState::Idle;
 
-	EMovementState CurrentState = EMovementState::Idle;
+    // WASD移动数据
+    FRotator TargetRotation;
+    FVector TargetLocation;
+    FIntPoint CurrentTargetGrid;
 
-	// 角色移动旋转的目标方向
-	FRotator TargetRotation;
-	// 角色移动的目标位置
-	FVector TargetLocation;
+    // 位移系统数据
+    TArray<FVector> DisplacementWorldPath;
+    float DisplacementElapsedTime = 0.0f;
+    float DisplacementTotalDuration = 0.0f;
 
-	//// 基础移动速度	// 现在由AttributesComponent管理
-	//UPROPERTY(EditDefaultsOnly, Category = "Grid")
-	//float BaseMoveSpeed = 300.0f; // cm/s
+    UPROPERTY(EditDefaultsOnly, Category = "Movement")
+    float GridSizeCM = 100.0f;
 
-	//网格尺寸
-	UPROPERTY(EditDefaultsOnly, Category = "Movement")
-	float GridSizeCM = 100.0f; // 1m = 100cm
+    // Tick处理函数
+    void HandleMovement(float DeltaTime);
+    void HandleDisplacementMovement(float DeltaTime);
 
+    // --- 用于WASD移动简单检测 ---
+    // 检查网格可行走性
+    bool IsGridWalkableSimple(int32 X, int32 Y) const;
 
-	// 网格仲裁者引用
-	UPROPERTY()
-	TObjectPtr<AGridManager> GridManager;
-	// 允许在蓝图中指定要查找的GridManager类
-	UPROPERTY(EditDefaultsOnly, Category = "Grid")
-	TSubclassOf<AGridManager> GridManagerClass;
-	// 记录当前正在移动的目标网格，以便在移动结束后释放
-	FIntPoint CurrentTargetGrid;
-
-
-	// 强制位移相关
-	float ForcedMoveTotalTime = 0.0f;
-	float ForcedMoveElapsedTime = 0.0f;
-	FVector ForcedMoveStartLocation;
+    // 获取网格上的角色
+    AActor* GetActorAtGridSimple(int32 GridX, int32 GridY) const;
 };

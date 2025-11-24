@@ -4,7 +4,7 @@
 #include "BTTask_MoveToGrid.h"
 #include "AIController.h"
 #include "GridTactics/EnemyCharacter.h"
-#include "GridTactics//GridMovementComponent.h"
+#include "GridTactics/GridMovementComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Actor.h"
 
@@ -51,56 +51,85 @@ EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& Owne
 
 	// 从黑板获取目标Actor
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetActorKey.SelectedKeyName));
-	if (!TargetActor)
+	if (!BlackboardComp) return EBTNodeResult::Failed;
+
+	FVector TargetLocation;
+	bool bHasValidTarget = false;
+
+	// 1. 优先尝试从 TargetLocationKey 获取目标位置
+	if (TargetLocationKey.IsSet() && BlackboardComp->IsVectorValueSet(TargetLocationKey.SelectedKeyName))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BTTask_MoveToGrid: TargetActor from Blackboard is NULL."));
+		TargetLocation = BlackboardComp->GetValueAsVector(TargetLocationKey.SelectedKeyName);
+		bHasValidTarget = true;
+	}
+
+	// 2. 如果没有有效的目标位置，再尝试从 TargetActorKey 获取
+	if (!bHasValidTarget && TargetActorKey.IsSet())
+	{
+		AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetActorKey.SelectedKeyName));
+		if (TargetActor)
+		{
+			TargetLocation = TargetActor->GetActorLocation();
+			bHasValidTarget = true;
+		}
+	}
+
+	if (!bHasValidTarget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BTTask_MoveToGrid: No valid target location or actor found."));
 		return EBTNodeResult::Failed;
 	}
+
 	const FVector EnemyLocation = EnemyChar->GetActorLocation();
-	const FVector TargetLocation = TargetActor->GetActorLocation();
-	UE_LOG(LogTemp, Log, TEXT("BTTask_MoveToGrid: Calculating direction from Enemy at %s to Target at %s"), *EnemyLocation.ToString(), *TargetLocation.ToString());
 
-	// 检查目标位置是否有效
-	if (TargetLocation == FVector::ZeroVector)
+	// 如果AI已经非常接近目标点，则认为任务成功
+	if (FVector::DistSquared(EnemyLocation, TargetLocation) < 100.f)
 	{
-		UE_LOG(LogTemp, Error, TEXT("BTTask_MoveToGrid: Target Actor '%s' is at location (0,0,0)! Check if it's spawned correctly."), *TargetActor->GetName());
-		return EBTNodeResult::Failed;
+		// 如果是巡逻移动，到达后清空目标点，以便下次重新寻找
+		if (TargetLocationKey.IsSet())
+		{
+			BlackboardComp->ClearValue(TargetLocationKey.SelectedKeyName);
+		}
+		return EBTNodeResult::Succeeded;
 	}
 
-	// 计算朝向目标的方向，并离散化为单步移动
-	FVector DirectionToTarget = (TargetActor->GetActorLocation() - EnemyChar->GetActorLocation()).GetSafeNormal();
+	// 使用统一的 TargetLocation 来计算方向
+	FVector DirectionToTarget = (TargetLocation - EnemyLocation).GetSafeNormal();
 
 	int32 DeltaX = 0;
 	int32 DeltaY = 0;
 
-	// 优先移动绝对值更大的轴，以确保是四方向移动，而不是对角线
-	if (FMath::Abs(DirectionToTarget.X) > FMath::Abs(DirectionToTarget.Y))
-	{
-		DeltaX = (DirectionToTarget.X > 0) ? 1 : -1;
-	}
-	else
-	{
-		DeltaY = (DirectionToTarget.Y > 0) ? 1 : -1;
-	}
-	UE_LOG(LogTemp, Log, TEXT("BTTask_MoveToGrid: Calculated move direction (DeltaX: %d, DeltaY: %d)"), DeltaX, DeltaY);
+	// 四方向离散化逻辑
+		if (FMath::Abs(DirectionToTarget.X) > FMath::Abs(DirectionToTarget.Y))
+		{
+			// X轴为主导方向
+			DeltaX = (DirectionToTarget.X > 0) ? 1 : -1;
+			DeltaY = 0; // 强制Y轴为0
+		}
+		else
+		{
+			// Y轴为主导方向（或与X轴相等）
+			DeltaY = (DirectionToTarget.Y > 0) ? 1 : -1;
+			DeltaX = 0; // 强制X轴为0
+		}
 
-	// 如果没有有效的移动方向（例如目标和自身在同一格子），则任务失败
 	if (DeltaX == 0 && DeltaY == 0)
 	{
-		return EBTNodeResult::Failed;
+		// 如果目标就在当前格子上，但距离检查没通过（可能在格子边缘），也视为成功
+		return EBTNodeResult::Succeeded;
 	}
 
-	// 尝试开始移动
 	if (GridMovementComp->TryMoveOneStep(DeltaX, DeltaY))
 	{
-		UE_LOG(LogTemp, Log, TEXT("BTTask_MoveToGrid: TryMoveOneStep succeeded. Returning InProgress."));
-		return EBTNodeResult::InProgress;		// 移动指令成功发出，任务进入“进行中”状态
+		return EBTNodeResult::InProgress;
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BTTask_MoveToGrid: TryMoveOneStep failed (blocked or no stamina?). Returning Failed."));
-		return EBTNodeResult::Failed;		// 移动指令失败（例如被阻挡或体力不足），任务失败
+		if (TargetLocationKey.IsSet())
+		{
+			BlackboardComp->ClearValue(TargetLocationKey.SelectedKeyName);
+		}
+		return EBTNodeResult::Failed;
 	}
 }
 
