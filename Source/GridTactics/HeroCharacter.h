@@ -17,6 +17,7 @@ class AGridCell;
 class UGridMovementComponent;
 class USkillDataAsset;
 class UAttributesComponent;
+class APlayerController;
 
 UENUM(BlueprintType)
 enum class ECharacterRootState : uint8
@@ -61,13 +62,21 @@ public:
 
 
 
-	// 根据技能数据的范围模式获取实际的世界坐标范围
+	// 基于角色位置计算范围
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	TArray<FIntPoint> GetSkillRangeInWorld(const TArray<FIntPoint>& Pattern) const;
+	// 基于指定中心点计算范围
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	TArray<FIntPoint> GetSkillRangeInWorldFromCenter(const TArray<FIntPoint>& Pattern, FIntPoint CenterGrid) const;
 
-	// 显示技能范围指示器（蓝图实现）
+
+	// 显示技能范围指示器（蓝图实现）[蓝色]
 	UFUNCTION(BlueprintImplementableEvent, Category = "Skills")
 	void ShowRangeIndicators(const TArray<FIntPoint>& GridsToHighlight);
+	// 显示效果范围指示器 [红色]
+	UFUNCTION(BlueprintImplementableEvent, Category = "Skills")
+	void ShowEffectIndicators(const TArray<FIntPoint>& GridsToHighlight);
+
 	// 隐藏所有范围指示器（蓝图实现,可以作为函数被调用）
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Skills")
 	void HideRangeIndicators();
@@ -112,8 +121,13 @@ protected:
 	// ...其他输入动作...
 
 
-	// 更新施法瞄准方向
+	// 技能范围更新相关函数
 	void UpdateAimingDirection();
+	void UpdateDirectionalSkillRange(const USkillDataAsset* SkillData);
+	void UpdateTargetedSkillRange(const USkillDataAsset* SkillData, APlayerController* PC);
+
+	// 辅助函数
+	FVector GetDirectionToMouse() const;
 
 	// 用于显示玩家状态的UI控件蓝图类
 	UPROPERTY(EditDefaultsOnly, Category = "UI")

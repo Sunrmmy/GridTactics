@@ -7,7 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "HUDWidget.h"
 #include "SkillComponent.h"
-#include "GridMovementComponent.h"
+#include "Skills/Skill_TargetedEffect.h"
 #include "SkillDataAsset.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -15,13 +15,14 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GridMovementComponent.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Engine/OverlapResult.h"
-
+#include "GameFramework/PlayerController.h"
 
 
 // Sets default values
@@ -157,43 +158,113 @@ void AHeroCharacter::UpdateAimingDirection()
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (!PC || !GridMovementComponent || !SkillComponent) return;
 
-	// 从鼠标位置获取世界方向
-	FVector WorldLocation, WorldDirection;
-	PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
-
-	// 计算鼠标指向的地面位置
-	FVector PlaneOrigin = GetActorLocation();
-	FVector MouseGroundPos = FMath::LinePlaneIntersection(WorldLocation, WorldLocation + WorldDirection * 10000.f, PlaneOrigin, FVector::UpVector);
-
-	// 计算相对于角色的方向并离散化
-	FVector DirToMouse = (MouseGroundPos - GetActorLocation()).GetSafeNormal();
-	int32 DirX = FMath::RoundToInt(DirToMouse.X);
-	int32 DirY = FMath::RoundToInt(DirToMouse.Y);
-
-	// 优先Y轴，如果Y为0再考虑X轴，确保是四个纯方向
-	if (FMath::Abs(DirY) >= FMath::Abs(DirX))
-	{
-		DirX = 0;
-		DirY = (DirY > 0) ? 1 : -1;
-	}
-	else
-	{
-		DirY = 0;
-		DirX = (DirX > 0) ? 1 : -1;
-	}
-
-	// 设置目标旋转，Tick中的平滑旋转逻辑会自动处理
-	const FRotator TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DirX, DirY, 0));
-	GridMovementComponent->SetTargetRotation(TargetRotation);
-
 	const int32 AimingSkillIndex = SkillComponent->GetAimingSkillIndex();
-	// 更新技能范围显示
-		// 用SkillComponent的GetSkillData函数来获取数据
-	if (const USkillDataAsset* SkillData = SkillComponent->GetSkillData(AimingSkillIndex))
+	const USkillDataAsset* SkillData = SkillComponent->GetSkillData(AimingSkillIndex);
+	
+	if (!SkillData) return;
+
+	// 基于 TargetType 统一处理
+	switch (SkillData->TargetType)
 	{
-		TArray<FIntPoint> WorldGrids = GetSkillRangeInWorld(SkillData->RangePattern);
-		ShowRangeIndicators(WorldGrids);
+	case ESkillTargetType::Direction:
+		// 方向性技能（如冲锋）
+		UpdateDirectionalSkillRange(SkillData);
+		break;
+
+	case ESkillTargetType::TargetGrid:
+		// 精确目标技能（如 AOE、传送）
+		UpdateTargetedSkillRange(SkillData, PC);
+		break;
+
+	case ESkillTargetType::Self:
+		// 自身技能，无需显示范围
+		HideRangeIndicators();
+		break;
+
+	default:
+		break;
 	}
+}
+
+void AHeroCharacter::UpdateDirectionalSkillRange(const USkillDataAsset* SkillData)
+{
+    // 原有逻辑：显示方向性技能范围
+    FVector DirToMouse = GetDirectionToMouse();
+    int32 DirX = FMath::RoundToInt(DirToMouse.X);
+    int32 DirY = FMath::RoundToInt(DirToMouse.Y);
+
+    if (FMath::Abs(DirY) >= FMath::Abs(DirX))
+    {
+        DirX = 0;
+        DirY = (DirY > 0) ? 1 : -1;
+    }
+    else
+    {
+        DirY = 0;
+        DirX = (DirX > 0) ? 1 : -1;
+    }
+
+    const FRotator TargetRotation = UKismetMathLibrary::MakeRotFromX(FVector(DirX, DirY, 0));
+    GridMovementComponent->SetTargetRotation(TargetRotation);
+
+    TArray<FIntPoint> WorldGrids = GetSkillRangeInWorld(SkillData->RangePattern);
+    ShowRangeIndicators(WorldGrids);
+}
+
+void AHeroCharacter::UpdateTargetedSkillRange(const USkillDataAsset* SkillData, APlayerController* PC)
+{
+    // 精确目标技能范围显示
+    
+    // 显示施法范围（蓝色）
+    TArray<FIntPoint> CastRangeGrids = GetSkillRangeInWorld(SkillData->RangePattern);
+    ShowRangeIndicators(CastRangeGrids);
+
+    // 获取鼠标目标格子
+    FVector WorldLocation, WorldDirection;
+    PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+    FVector PlaneOrigin = GetActorLocation();
+    FVector MouseGroundPos = FMath::LinePlaneIntersection(
+        WorldLocation, 
+        WorldLocation + WorldDirection * 10000.f, 
+        PlaneOrigin, 
+        FVector::UpVector
+    );
+
+    int32 MouseX, MouseY;
+    GridMovementComponent->WorldToGrid(MouseGroundPos, MouseX, MouseY);
+    FIntPoint MouseGrid(MouseX, MouseY);
+
+    // 如果鼠标在施法范围内，显示效果范围（红色）
+    if (CastRangeGrids.Contains(MouseGrid))
+    {
+        TArray<FIntPoint> EffectGrids = GetSkillRangeInWorldFromCenter(SkillData->EffectPattern, MouseGrid);
+        ShowEffectIndicators(EffectGrids); // 需要在蓝图中实现
+    }
+}
+
+// 基于特定中心点计算范围
+TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorldFromCenter(const TArray<FIntPoint>& Pattern, FIntPoint CenterGrid) const
+{
+    TArray<FIntPoint> WorldGrids;
+
+    if (!GridMovementComponent)
+    {
+        return WorldGrids;
+    }
+
+    const FRotator CurrentRotation = GetActorRotation();
+
+    for (const FIntPoint& RelativePos : Pattern)
+    {
+        const FVector LocalPosVec(RelativePos.X, RelativePos.Y, 0);
+        const FVector RotatedVec = CurrentRotation.RotateVector(LocalPosVec);
+        const FIntPoint RotatedOffset(FMath::RoundToInt(RotatedVec.X), FMath::RoundToInt(RotatedVec.Y));
+
+        WorldGrids.Add(CenterGrid + RotatedOffset);
+    }
+
+    return WorldGrids;
 }
 
 
@@ -321,4 +392,32 @@ float AHeroCharacter::GetCurrentActualSpeed() const
 		return GridMovementComponent->GetCurrentActualSpeed();
 	}
 	return 0.0f;
+}
+
+// 获取鼠标方向
+FVector AHeroCharacter::GetDirectionToMouse() const
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC)
+    {
+        return FVector::ForwardVector;
+    }
+
+    // 获取鼠标在世界中的位置
+    FVector WorldLocation, WorldDirection;
+    PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+    // 计算鼠标指向的地面位置
+    FVector PlaneOrigin = GetActorLocation();
+    FVector MouseGroundPos = FMath::LinePlaneIntersection(
+        WorldLocation,
+        WorldLocation + WorldDirection * 10000.f,
+        PlaneOrigin,
+        FVector::UpVector
+    );
+
+    // 计算从角色到鼠标位置的方向向量
+    FVector DirToMouse = (MouseGroundPos - GetActorLocation()).GetSafeNormal();
+    
+    return DirToMouse;
 }
