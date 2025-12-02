@@ -5,6 +5,7 @@
 #include "GridMovementComponent.h"
 #include "SkillComponent.h"
 #include "AttributesComponent.h"
+#include "AttributesBar.h"
 #include "EnemyAIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/WidgetComponent.h"
@@ -43,21 +44,31 @@ void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HealthBarWidgetClass)
+	if (HealthBarWidgetClass && HealthBarWidgetComponent)
 	{
 		// 将指定的UI类设置给WidgetComponent
 		HealthBarWidgetComponent->SetWidgetClass(HealthBarWidgetClass);
 
-		// 获取刚刚创建的UI实例
-		UUserWidget* WidgetObject = HealthBarWidgetComponent->GetUserWidgetObject();
-		if (WidgetObject)
+		// 使用 AttributesBar 的接口
+		if (UAttributesBar* AttributesBar = Cast<UAttributesBar>(HealthBarWidgetComponent->GetUserWidgetObject()))
 		{
-			// 这是一个动态设置属性的方法，它会查找名为 "AttributesComponent" 的公开变量并设置它
-			FObjectProperty* Prop = FindFProperty<FObjectProperty>(WidgetObject->GetClass(), "AttributesComponent");
-			if (Prop)
-			{
-				Prop->SetObjectPropertyValue_InContainer(WidgetObject, AttributesComponent);
-			}
+			AttributesBar->SetOwnerActor(this);
+			UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: AttributesBar bound for %s"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("EnemyCharacter: HealthBarWidgetClass is not an AttributesBar! "));
+		}
+	}
+	else
+	{
+		if (!HealthBarWidgetClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("EnemyCharacter: HealthBarWidgetClass is NULL for %s! Please set it in BP_EnemyCharacter Class Defaults."), *GetName());
+		}
+		if (!HealthBarWidgetComponent)
+		{
+			UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: HealthBarWidgetComponent is NULL for %s!"), *GetName());
 		}
 	}
 }
