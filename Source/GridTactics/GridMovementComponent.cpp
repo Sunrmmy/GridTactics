@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "GridMovementComponent.h"
 #include "AttributesComponent.h"
@@ -29,9 +29,9 @@ void UGridMovementComponent::BeginPlay()
     OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (OwnerCharacter)
     {
-        // »ñÈ¡ÓµÓĞÕßÉíÉÏµÄ AttributesComponent
+        // è·å–æ‹¥æœ‰è€…èº«ä¸Šçš„ AttributesComponent
         AttributesComp = OwnerCharacter->FindComponentByClass<UAttributesComponent>();
-        TargetRotation = OwnerCharacter->GetActorRotation(); // ³õÊ¼»¯Ğı×ª
+        TargetRotation = OwnerCharacter->GetActorRotation(); // åˆå§‹åŒ–æ—‹è½¬
     }
 
     if (!AttributesComp)
@@ -47,19 +47,19 @@ void UGridMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
     if (!OwnerCharacter) return;
 
-    // Æ½»¬Ğı×ªµ½Ä¿±ê·½Ïò
+    // å¹³æ»‘æ—‹è½¬åˆ°ç›®æ ‡æ–¹å‘
     if (!OwnerCharacter->GetActorRotation().Equals(TargetRotation, 0.1f))
     {
         FRotator NewRotation = FMath::RInterpTo(
             OwnerCharacter->GetActorRotation(),
             TargetRotation,
             DeltaTime,
-            12.0f // Ğı×ªËÙ¶È
+            12.0f // æ—‹è½¬é€Ÿåº¦
         );
         OwnerCharacter->SetActorRotation(NewRotation);
     }
 
-    // ´¦ÀíÒÆ¶¯
+    // å¤„ç†ç§»åŠ¨
     if (CurrentState == EMovementState::DisplacementMoving)
     {
         HandleDisplacementMovement(DeltaTime);
@@ -71,7 +71,7 @@ void UGridMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 }
 
 // ========================================
-// Ô­ÓĞ½Ó¿ÚÊµÏÖ£¨±£³Ö¼æÈİ£©
+// åŸæœ‰æ¥å£å®ç°ï¼ˆä¿æŒå…¼å®¹ï¼‰
 // ========================================
 
 bool UGridMovementComponent::WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) const
@@ -101,10 +101,10 @@ void UGridMovementComponent::GetCurrentGrid(int32& OutX, int32& OutY) const
 
 bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 {
-    // ×´Ì¬¼ì²é
+    // çŠ¶æ€æ£€æŸ¥
     if (!OwnerCharacter || !AttributesComp) return false;
 
-    // ¼ì²éÌåÁ¦
+    // æ£€æŸ¥ä½“åŠ›
     if (AttributesComp->GetStamina() < 1.0f)
     {
         UE_LOG(LogTemp, Warning, TEXT("Not enough stamina to move. Stamina: %f"),
@@ -119,14 +119,14 @@ bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 
     CurrentTargetGrid = FIntPoint(TargetX, TargetY);
 
-    // »ñÈ¡ GridManager£¨Èç¹ûĞèÒªÍø¸ñÔ¤¶¨¹¦ÄÜ£©
+    // è·å– GridManagerï¼ˆå¦‚æœéœ€è¦ç½‘æ ¼é¢„å®šåŠŸèƒ½ï¼‰
     AGridManager* GridManager = Cast<AGridManager>(
         UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass())
     );
 
     if (GridManager)
     {
-        // Ïò GridManager ÇëÇóÔ¤¶¨Ä¿±ê¸ñ×Ó
+        // å‘ GridManager è¯·æ±‚é¢„å®šç›®æ ‡æ ¼å­
         if (!GridManager->ReserveGrid(OwnerCharacter, CurrentTargetGrid))
         {
             UE_LOG(LogTemp, Warning, TEXT("Grid (%d, %d) is reserved. Cannot move."), TargetX, TargetY);
@@ -134,10 +134,10 @@ bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
         }
     }
 
-    // ×ª»»ÎªÄ¿±êÊÀ½ç×ø±ê
+    // è½¬æ¢ä¸ºç›®æ ‡ä¸–ç•Œåæ ‡
     FVector TargetWorld = GridToWorld(TargetX, TargetY);
 
-    // ¼ì²éÄ¿±ê¸ñ×ÓÊÇ·ñ¿ÉĞĞ×ß£¨Ê¹ÓÃ¼ò»¯¼ì²â£©
+    // æ£€æŸ¥ç›®æ ‡æ ¼å­æ˜¯å¦å¯è¡Œèµ°ï¼ˆä½¿ç”¨ç®€åŒ–æ£€æµ‹ï¼‰
     if (!IsGridWalkableSimple(TargetX, TargetY))
     {
         UE_LOG(LogTemp, Verbose, TEXT("Target grid is blocked."));
@@ -145,7 +145,7 @@ bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
         return false;
     }
 
-    // ¼ì²éÄ¿±ê¸ñ×ÓÊÇ·ñ±»ÆäËû½ÇÉ«Õ¼¾İ
+    // æ£€æŸ¥ç›®æ ‡æ ¼å­æ˜¯å¦è¢«å…¶ä»–è§’è‰²å æ®
     AActor* OccupyingActor = GetActorAtGridSimple(TargetX, TargetY);
     if (OccupyingActor && OccupyingActor != GetOwner())
     {
@@ -155,7 +155,7 @@ bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
         return false;
     }
 
-    // ÏûºÄÌåÁ¦²¢¿ªÊ¼ÒÆ¶¯
+    // æ¶ˆè€—ä½“åŠ›å¹¶å¼€å§‹ç§»åŠ¨
     AttributesComp->ConsumeStamina(1.0f);
     UE_LOG(LogTemp, Log, TEXT("Moved. Stamina left: %f"), AttributesComp->GetStamina());
 
@@ -167,7 +167,7 @@ bool UGridMovementComponent::TryMoveOneStep(int32 DeltaX, int32 DeltaY)
 }
 
 // ========================================
-// ĞÂ½Ó¿ÚÊµÏÖ£ºÎ»ÒÆÏµÍ³
+// æ–°æ¥å£å®ç°ï¼šä½ç§»ç³»ç»Ÿ
 // ========================================
 
 void UGridMovementComponent::ExecuteDisplacementPath(const TArray<FIntPoint>& Path, float Duration)
@@ -178,7 +178,7 @@ void UGridMovementComponent::ExecuteDisplacementPath(const TArray<FIntPoint>& Pa
         return;
     }
 
-    // ×ª»»ÎªÊÀ½ç×ø±êÂ·¾¶
+    // è½¬æ¢ä¸ºä¸–ç•Œåæ ‡è·¯å¾„
     DisplacementWorldPath.Empty();
     for (const FIntPoint& Grid : Path)
     {
@@ -186,12 +186,12 @@ void UGridMovementComponent::ExecuteDisplacementPath(const TArray<FIntPoint>& Pa
         DisplacementWorldPath.Add(WorldPos);
     }
 
-    // ³õÊ¼»¯Î»ÒÆ×´Ì¬
+    // åˆå§‹åŒ–ä½ç§»çŠ¶æ€
     CurrentState = EMovementState::DisplacementMoving;
     DisplacementElapsedTime = 0.0f;
     DisplacementTotalDuration = Duration;
 
-    // ¼ÆËã³¯Ïò£¨ÃæÏòÂ·¾¶ÖÕµã£©
+    // è®¡ç®—æœå‘ï¼ˆé¢å‘è·¯å¾„ç»ˆç‚¹ï¼‰
     if (DisplacementWorldPath.Num() >= 2)
     {
         FVector StartPos = DisplacementWorldPath[0];
@@ -220,7 +220,7 @@ void UGridMovementComponent::StopDisplacement()
 }
 
 // ========================================
-// ÄÚ²¿´¦Àíº¯Êı
+// å†…éƒ¨å¤„ç†å‡½æ•°
 // ========================================
 
 void UGridMovementComponent::HandleMovement(float DeltaTime)
@@ -235,11 +235,11 @@ void UGridMovementComponent::HandleMovement(float DeltaTime)
 
     if (Dist2D <= MoveStep)
     {
-        // µ½´ïÄ¿±ê
+        // åˆ°è¾¾ç›®æ ‡
         OwnerCharacter->SetActorLocation(Target2D);
         CurrentState = EMovementState::Idle;
 
-        // ÊÍ·ÅÍø¸ñÔ¤¶¨
+        // é‡Šæ”¾ç½‘æ ¼é¢„å®š
         AGridManager* GridManager = Cast<AGridManager>(
             UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass())
         );
@@ -250,7 +250,7 @@ void UGridMovementComponent::HandleMovement(float DeltaTime)
     }
     else
     {
-        // ¼ÌĞøÒÆ¶¯
+        // ç»§ç»­ç§»åŠ¨
         FVector Dir = (Target2D - Current).GetSafeNormal();
         OwnerCharacter->SetActorLocation(Current + Dir * MoveStep);
     }
@@ -263,7 +263,7 @@ void UGridMovementComponent::HandleDisplacementMovement(float DeltaTime)
     DisplacementElapsedTime += DeltaTime;
     float Progress = FMath::Clamp(DisplacementElapsedTime / DisplacementTotalDuration, 0.0f, 1.0f);
 
-    // ÏßĞÔ²åÖµÕû¸öÂ·¾¶
+    // çº¿æ€§æ’å€¼æ•´ä¸ªè·¯å¾„
     int32 TotalSegments = DisplacementWorldPath.Num() - 1;
     float SegmentProgress = Progress * TotalSegments;
     int32 CurrentSegment = FMath::FloorToInt(SegmentProgress);
@@ -271,31 +271,151 @@ void UGridMovementComponent::HandleDisplacementMovement(float DeltaTime)
 
     if (CurrentSegment >= TotalSegments)
     {
-        // Íê³ÉÎ»ÒÆ
+        // å®Œæˆä½ç§»
         FVector FinalPos = DisplacementWorldPath.Last();
-        FinalPos.Z = OwnerCharacter->GetActorLocation().Z; // ±£³Ö Z Öá
+        
+        // ä¿®å¤ï¼šä½¿ç”¨åˆå§‹é«˜åº¦ + ç›®æ ‡åç§»
+        FinalPos.Z = DisplacementInitialHeight + DisplacementEndHeight;
+        
         OwnerCharacter->SetActorLocation(FinalPos);
+
+        // å¯¹é½æ—‹è½¬åˆ°å››å‘
+        FRotator CurrentRotation = OwnerCharacter->GetActorRotation();
+        FRotator SnappedRotation = SnapRotationToFourDirections(CurrentRotation);
+        OwnerCharacter->SetActorRotation(SnappedRotation);
+        TargetRotation = SnappedRotation;
 
         CurrentState = EMovementState::Idle;
         DisplacementWorldPath.Empty();
+
+        // é‡ç½®å‚æ•°
+        DisplacementStartHeight = 0.0f;
+        DisplacementEndHeight = 0.0f;
+        DisplacementArcHeight = 0.0f;
+        DisplacementInitialHeight = 0.0f;
 
         UE_LOG(LogTemp, Log, TEXT("Displacement completed"));
         return;
     }
 
-    // ²åÖµµ±Ç°¶Î
+    // æ’å€¼å½“å‰æ®µ
     FVector StartPos = DisplacementWorldPath[CurrentSegment];
     FVector EndPos = DisplacementWorldPath[CurrentSegment + 1];
     FVector NewPos = FMath::Lerp(StartPos, EndPos, LocalProgress);
 
-    // ±£³Ö Z Öá£¨»òÕßÄã¿ÉÒÔ¸ù¾İĞèÒªÌí¼ÓÅ×ÎïÏßĞ§¹û£©
-    NewPos.Z = OwnerCharacter->GetActorLocation().Z;
+    // ä¿®å¤ï¼šä½¿ç”¨åˆå§‹é«˜åº¦ä½œä¸ºåŸºå‡†
+    if (DisplacementArcHeight > 0.0f)
+    {
+        // æŠ›ç‰©çº¿é«˜åº¦
+        float ParabolicHeight = -4.0f * DisplacementArcHeight * FMath::Square(Progress - 0.5f) + DisplacementArcHeight;
+        
+        float BaseHeight = FMath::Lerp(
+            DisplacementInitialHeight + DisplacementStartHeight,  // ä½¿ç”¨åˆå§‹é«˜åº¦
+            DisplacementInitialHeight + DisplacementEndHeight,    // ä½¿ç”¨åˆå§‹é«˜åº¦
+            Progress
+        );
+        
+        NewPos.Z = BaseHeight + ParabolicHeight;
+    }
+    else
+    {
+        // çº¿æ€§é«˜åº¦æ’å€¼
+        NewPos.Z = FMath::Lerp(
+            DisplacementInitialHeight + DisplacementStartHeight,  // ä½¿ç”¨åˆå§‹é«˜åº¦
+            DisplacementInitialHeight + DisplacementEndHeight,    // ä½¿ç”¨åˆå§‹é«˜åº¦
+            Progress
+        );
+    }
 
     OwnerCharacter->SetActorLocation(NewPos);
 }
 
+FRotator UGridMovementComponent::SnapRotationToFourDirections(const FRotator& Rotation)
+{
+    float Yaw = Rotation.Yaw;
+
+    // è§„èŒƒåŒ–åˆ° [0, 360)
+    while (Yaw < 0.0f) Yaw += 360.0f;
+    while (Yaw >= 360.0f) Yaw -= 360.0f;
+
+    // å¯¹é½åˆ°æœ€æ¥è¿‘çš„å››ä¸ªæ–¹å‘ï¼ˆ0Â°, 90Â°, 180Â°, 270Â°ï¼‰
+    float SnappedYaw;
+
+    if (Yaw >= 315.0f || Yaw < 45.0f)
+    {
+        SnappedYaw = 0.0f;   // ä¸œ
+    }
+    else if (Yaw >= 45.0f && Yaw < 135.0f)
+    {
+        SnappedYaw = 90.0f;  // åŒ—
+    }
+    else if (Yaw >= 135.0f && Yaw < 225.0f)
+    {
+        SnappedYaw = 180.0f; // è¥¿
+    }
+    else
+    {
+        SnappedYaw = 270.0f; // å—
+    }
+
+    return FRotator(0.0f, SnappedYaw, 0.0f);
+}
+
+void UGridMovementComponent::ExecuteDisplacementPathWithHeight(
+    const TArray<FIntPoint>& Path,
+    float Duration,
+    float StartHeightOffset,
+    float EndHeightOffset,
+    float ArcPeakHeight)
+{
+    if (Path.Num() < 2)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ExecuteDisplacementPathWithHeight: Invalid path"));
+        return;
+    }
+
+    // âœ… ç¼“å­˜å½“å‰é«˜åº¦ä½œä¸ºåŸºå‡†
+    if (OwnerCharacter)
+    {
+        DisplacementInitialHeight = OwnerCharacter->GetActorLocation().Z;
+    }
+
+    // è½¬æ¢ä¸ºä¸–ç•Œåæ ‡è·¯å¾„
+    DisplacementWorldPath.Empty();
+    for (const FIntPoint& Grid : Path)
+    {
+        FVector WorldPos = GridToWorld(Grid.X, Grid.Y);
+        DisplacementWorldPath.Add(WorldPos);
+    }
+
+    // ä¿å­˜é«˜åº¦å‚æ•°
+    DisplacementStartHeight = StartHeightOffset;
+    DisplacementEndHeight = EndHeightOffset;
+    DisplacementArcHeight = ArcPeakHeight;
+
+    // åˆå§‹åŒ–ä½ç§»çŠ¶æ€
+    CurrentState = EMovementState::DisplacementMoving;
+    DisplacementElapsedTime = 0.0f;
+    DisplacementTotalDuration = Duration;
+
+    // è®¡ç®—æœå‘ï¼ˆé¢å‘è·¯å¾„ç»ˆç‚¹ï¼‰
+    if (DisplacementWorldPath.Num() >= 2)
+    {
+        FVector StartPos = DisplacementWorldPath[0];
+        FVector EndPos = DisplacementWorldPath.Last();
+        FVector Direction = (EndPos - StartPos).GetSafeNormal();
+        if (!Direction.IsNearlyZero())
+        {
+            TargetRotation = SnapRotationToFourDirections(Direction.Rotation());
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("ExecuteDisplacementPathWithHeight: Initial Z: %.1f, Start Offset: %.1f, End Offset: %.1f, Arc: %.1f"),
+        DisplacementInitialHeight, StartHeightOffset, EndHeightOffset, ArcPeakHeight);
+}
+
 // ========================================
-// ¸¨Öúº¯Êı£¨¼ò»¯°æ£©
+// è¾…åŠ©å‡½æ•°ï¼ˆç®€åŒ–ç‰ˆï¼‰
 // ========================================
 
 bool UGridMovementComponent::IsGridWalkableSimple(int32 X, int32 Y) const
@@ -375,16 +495,16 @@ float UGridMovementComponent::GetCurrentActualSpeed() const
         return 0.0f;
     }
 
-    // ¸ù¾İµ±Ç°×´Ì¬·µ»ØËÙ¶È
+    // æ ¹æ®å½“å‰çŠ¶æ€è¿”å›é€Ÿåº¦
     if (CurrentState == EMovementState::Moving)
     {
-        // WASD ÒÆ¶¯£º·µ»Ø»ù´¡ÒÆ¶¯ËÙ¶È
+        // WASD ç§»åŠ¨ï¼šè¿”å›åŸºç¡€ç§»åŠ¨é€Ÿåº¦
         return AttributesComp->GetMoveSpeed();
     }
     else if (CurrentState == EMovementState::DisplacementMoving)
     {
-        // Î»ÒÆ¼¼ÄÜ£º·µ»ØÒ»¸ö¹Ì¶¨µÄ"³å´ÌËÙ¶È"ÓÃÓÚ¶¯»­
-        // »òÕß¸ù¾İÂ·¾¶³¤¶ÈºÍ³ÖĞøÊ±¼ä¼ÆËã
+        // ä½ç§»æŠ€èƒ½ï¼šè¿”å›ä¸€ä¸ªå›ºå®šçš„"å†²åˆºé€Ÿåº¦"ç”¨äºåŠ¨ç”»
+        // æˆ–è€…æ ¹æ®è·¯å¾„é•¿åº¦å’ŒæŒç»­æ—¶é—´è®¡ç®—
         if (DisplacementWorldPath.Num() >= 2 && DisplacementTotalDuration > 0.0f)
         {
             float TotalDistance = 0.0f;
@@ -392,10 +512,10 @@ float UGridMovementComponent::GetCurrentActualSpeed() const
             {
                 TotalDistance += FVector::Dist(DisplacementWorldPath[i], DisplacementWorldPath[i + 1]);
             }
-            return TotalDistance / DisplacementTotalDuration; // Æ½¾ùËÙ¶È
+            return TotalDistance / DisplacementTotalDuration; // å¹³å‡é€Ÿåº¦
         }
-        return AttributesComp->GetMoveSpeed() * 2.0f; // Ä¬ÈÏÎªÁ½±¶ËÙ¶È
+        return AttributesComp->GetMoveSpeed() * 2.0f; // é»˜è®¤ä¸ºä¸¤å€é€Ÿåº¦
     }
 
-    return 0.0f; // ¾²Ö¹×´Ì¬
+    return 0.0f; // é™æ­¢çŠ¶æ€
 }

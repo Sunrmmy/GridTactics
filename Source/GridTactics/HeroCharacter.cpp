@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "HeroCharacter.h"
@@ -31,35 +31,35 @@ AHeroCharacter::AHeroCharacter()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// ´´½¨µ¯»É±Û²¢½«Æä¸½¼Óµ½¸ù×é¼ş
+	// åˆ›å»ºå¼¹ç°§è‡‚å¹¶å°†å…¶é™„åŠ åˆ°æ ¹ç»„ä»¶
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->bUsePawnControlRotation = false; // ¹Ø±Õµ¯»É±Û»ùÓÚ¿ØÖÆÆ÷µÄĞı×ª
+	CameraBoom->bUsePawnControlRotation = false; // å…³é—­å¼¹ç°§è‡‚åŸºäºæ§åˆ¶å™¨çš„æ—‹è½¬
 	CameraBoom->bDoCollisionTest = false;
 
-	// ÉèÖÃµ¯»É±ÛµÄÎ»ÖÃÒÔÊµÏÖ¸©ÊÓÊÓ½Ç
+	// è®¾ç½®å¼¹ç°§è‡‚çš„ä½ç½®ä»¥å®ç°ä¿¯è§†è§†è§’
 	CameraBoom->TargetArmLength = 800.f;
 	CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
-	// ²»¼Ì³Ğ½ÇÉ«µÄĞı×ª
+	// ä¸ç»§æ‰¿è§’è‰²çš„æ—‹è½¬
 	CameraBoom->bInheritPitch = false;
 	CameraBoom->bInheritYaw = false;
 	CameraBoom->bInheritRoll = false;
 
-	// ´´½¨ÉãÏñ»ú²¢½«Æä¸½¼Óµ½µ¯»É±Û
+	// åˆ›å»ºæ‘„åƒæœºå¹¶å°†å…¶é™„åŠ åˆ°å¼¹ç°§è‡‚
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	Camera->bUsePawnControlRotation = false;	// ÉãÏñ»ú²»Ïà¶ÔÓÚµ¯»É±ÛĞı×ª
+	Camera->bUsePawnControlRotation = false;	// æ‘„åƒæœºä¸ç›¸å¯¹äºå¼¹ç°§è‡‚æ—‹è½¬
 
-	// ½ûÓÃÓÉ CharacterMovementComponent ÒıÆğµÄ×Ô¶¯Ğı×ª²ÅÄÜÍ¨¹ı SetActorRotation()ÊÖ¶¯¿ØÖÆ½ÇÉ«³¯Ïò
-	bUseControllerRotationYaw = false; // ½ÇÉ«²»¸úËæ¿ØÖÆÆ÷µÄYawĞı×ª
-	GetCharacterMovement()->bOrientRotationToMovement = false; // ½ÇÉ«²»×Ô¶¯³¯ÏòÒÆ¶¯·½Ïò
-	GetCharacterMovement()->bUseControllerDesiredRotation = false; // ½ÇÉ«²»Ê¹ÓÃ¿ØÖÆÆ÷ÆÚÍûµÄĞı×ª
+	// ç¦ç”¨ç”± CharacterMovementComponent å¼•èµ·çš„è‡ªåŠ¨æ—‹è½¬æ‰èƒ½é€šè¿‡ SetActorRotation()æ‰‹åŠ¨æ§åˆ¶è§’è‰²æœå‘
+	bUseControllerRotationYaw = false; // è§’è‰²ä¸è·Ÿéšæ§åˆ¶å™¨çš„Yawæ—‹è½¬
+	GetCharacterMovement()->bOrientRotationToMovement = false; // è§’è‰²ä¸è‡ªåŠ¨æœå‘ç§»åŠ¨æ–¹å‘
+	GetCharacterMovement()->bUseControllerDesiredRotation = false; // è§’è‰²ä¸ä½¿ç”¨æ§åˆ¶å™¨æœŸæœ›çš„æ—‹è½¬
 
-	// ´´½¨¼¼ÄÜ×é¼ş
+	// åˆ›å»ºæŠ€èƒ½ç»„ä»¶
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
-	// ´´½¨Íø¸ñÒÆ¶¯×é¼ş
+	// åˆ›å»ºç½‘æ ¼ç§»åŠ¨ç»„ä»¶
 	GridMovementComponent = CreateDefaultSubobject<UGridMovementComponent>(TEXT("GridMovementComponent"));
-	// ´´½¨ÊôĞÔ×é¼ş
+	// åˆ›å»ºå±æ€§ç»„ä»¶
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>(TEXT("AttributesComponent"));
 }
 
@@ -71,15 +71,15 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		// °ó¶¨IA_Moveµ½OnMoveº¯Êı
+		// ç»‘å®šIA_Moveåˆ°OnMoveå‡½æ•°
 		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroCharacter::OnMove);
 		EnhancedInput->BindAction(IA_Skill_1, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 0);
 		EnhancedInput->BindAction(IA_Skill_2, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 1);
-		// °ó¶¨ÆäËû¼¼ÄÜ¼ü ...
+		// ç»‘å®šå…¶ä»–æŠ€èƒ½é”® ...
 
-		// °ó¶¨È¡ÏûÊ©·¨
+		// ç»‘å®šå–æ¶ˆæ–½æ³•
 		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
-		// °ó¶¨Êó±êµã»÷ÓÃÓÚÈ·ÈÏÊ©·¨
+		// ç»‘å®šé¼ æ ‡ç‚¹å‡»ç”¨äºç¡®è®¤æ–½æ³•
 		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
 	}
 }
@@ -90,7 +90,7 @@ void AHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// »º´æPlayerStateµÄÒıÓÃ
+	// ç¼“å­˜PlayerStateçš„å¼•ç”¨
 	GTPlayerState = GetPlayerState<AGridTacticsPlayerState>();
 
 	if (!IMC_Hero || !IA_Move)
@@ -99,7 +99,7 @@ void AHeroCharacter::BeginPlay()
 		return;
 	}
 
-	// °ó¶¨ Enhanced Input
+	// ç»‘å®š Enhanced Input
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
@@ -107,7 +107,7 @@ void AHeroCharacter::BeginPlay()
 			Subsystem->AddMappingContext(IMC_Hero, 0);
 		}
 
-		// ´´½¨²¢ÏÔÊ¾UI
+		// åˆ›å»ºå¹¶æ˜¾ç¤ºUI
 		if (PlayerHUDClass && IsLocallyControlled())
 		{
 			PlayerHUD = CreateWidget<UHUDWidget>(PlayerController, PlayerHUDClass);
@@ -125,7 +125,7 @@ void AHeroCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// ²»ÔÙĞèÒªÊÖ¶¯¸üĞÂÊôĞÔ×é¼ş£¬ËüÏÖÔÚ×Ô¼º»áTick£¨ÓëHeroCharacter½âñî£©
+	// ä¸å†éœ€è¦æ‰‹åŠ¨æ›´æ–°å±æ€§ç»„ä»¶ï¼Œå®ƒç°åœ¨è‡ªå·±ä¼šTickï¼ˆä¸HeroCharacterè§£è€¦ï¼‰
 	//if (AttributesComponent)
 	//{
 	//	AttributesComponent->UpdateAttributes(DeltaTime);
@@ -133,7 +133,7 @@ void AHeroCharacter::Tick(float DeltaTime)
 
 	if (SkillComponent)
 	{
-		// ¸ù¾İ¼¼ÄÜ×é¼şµÄ×´Ì¬À´¾ö¶¨½ÇÉ«ÊÇ·ñ¿ÉÒÔĞĞ¶¯
+		// æ ¹æ®æŠ€èƒ½ç»„ä»¶çš„çŠ¶æ€æ¥å†³å®šè§’è‰²æ˜¯å¦å¯ä»¥è¡ŒåŠ¨
 		if (SkillComponent->GetCurrentSkillState() == ESkillState::Casting)
 		{
 			RootState = ECharacterRootState::Busy;
@@ -143,7 +143,7 @@ void AHeroCharacter::Tick(float DeltaTime)
 			RootState = ECharacterRootState::Idle;
 		}
 
-		// Ö»ÓĞÔÚ¼¼ÄÜ×é¼ş´¦ÓÚÃé×¼×´Ì¬Ê±£¬²Å¸üĞÂ·½ÏòºÍ·¶Î§ÏÔÊ¾
+		// åªæœ‰åœ¨æŠ€èƒ½ç»„ä»¶å¤„äºç„å‡†çŠ¶æ€æ—¶ï¼Œæ‰æ›´æ–°æ–¹å‘å’ŒèŒƒå›´æ˜¾ç¤º
 		if (SkillComponent->GetCurrentSkillState() == ESkillState::Aiming)
 		{
 			UpdateAimingDirection();
@@ -163,21 +163,21 @@ void AHeroCharacter::UpdateAimingDirection()
 	
 	if (!SkillData) return;
 
-	// »ùÓÚ TargetType Í³Ò»´¦Àí
+	// åŸºäº TargetType ç»Ÿä¸€å¤„ç†
 	switch (SkillData->TargetType)
 	{
 	case ESkillTargetType::Direction:
-		// ·½ÏòĞÔ¼¼ÄÜ£¨Èç³å·æ£©
+		// æ–¹å‘æ€§æŠ€èƒ½ï¼ˆå¦‚å†²é”‹ï¼‰
 		UpdateDirectionalSkillRange(SkillData);
 		break;
 
 	case ESkillTargetType::TargetGrid:
-		// ¾«È·Ä¿±ê¼¼ÄÜ£¨Èç AOE¡¢´«ËÍ£©
+		// ç²¾ç¡®ç›®æ ‡æŠ€èƒ½ï¼ˆå¦‚ AOEã€ä¼ é€ï¼‰
 		UpdateTargetedSkillRange(SkillData, PC);
 		break;
 
 	case ESkillTargetType::Self:
-		// ×ÔÉí¼¼ÄÜ£¬ÎŞĞèÏÔÊ¾·¶Î§
+		// è‡ªèº«æŠ€èƒ½ï¼Œæ— éœ€æ˜¾ç¤ºèŒƒå›´
 		HideRangeIndicators();
 		break;
 
@@ -188,7 +188,7 @@ void AHeroCharacter::UpdateAimingDirection()
 
 void AHeroCharacter::UpdateDirectionalSkillRange(const USkillDataAsset* SkillData)
 {
-    // Ô­ÓĞÂß¼­£ºÏÔÊ¾·½ÏòĞÔ¼¼ÄÜ·¶Î§
+    // åŸæœ‰é€»è¾‘ï¼šæ˜¾ç¤ºæ–¹å‘æ€§æŠ€èƒ½èŒƒå›´
     FVector DirToMouse = GetDirectionToMouse();
     int32 DirX = FMath::RoundToInt(DirToMouse.X);
     int32 DirY = FMath::RoundToInt(DirToMouse.Y);
@@ -213,13 +213,13 @@ void AHeroCharacter::UpdateDirectionalSkillRange(const USkillDataAsset* SkillDat
 
 void AHeroCharacter::UpdateTargetedSkillRange(const USkillDataAsset* SkillData, APlayerController* PC)
 {
-    // ¾«È·Ä¿±ê¼¼ÄÜ·¶Î§ÏÔÊ¾
+    // ç²¾ç¡®ç›®æ ‡æŠ€èƒ½èŒƒå›´æ˜¾ç¤º
     
-    // ÏÔÊ¾Ê©·¨·¶Î§£¨À¶É«£©
+    // æ˜¾ç¤ºæ–½æ³•èŒƒå›´ï¼ˆè“è‰²ï¼‰
     TArray<FIntPoint> CastRangeGrids = GetSkillRangeInWorld(SkillData->RangePattern);
     ShowRangeIndicators(CastRangeGrids);
 
-    // »ñÈ¡Êó±êÄ¿±ê¸ñ×Ó
+    // è·å–é¼ æ ‡ç›®æ ‡æ ¼å­
     FVector WorldLocation, WorldDirection;
     PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
 
@@ -235,15 +235,15 @@ void AHeroCharacter::UpdateTargetedSkillRange(const USkillDataAsset* SkillData, 
     GridMovementComponent->WorldToGrid(MouseGroundPos, MouseX, MouseY);
     FIntPoint MouseGrid(MouseX, MouseY);
 
-    // Èç¹ûÊó±êÔÚÊ©·¨·¶Î§ÄÚ£¬ÏÔÊ¾Ğ§¹û·¶Î§£¨ºìÉ«£©
+    // å¦‚æœé¼ æ ‡åœ¨æ–½æ³•èŒƒå›´å†…ï¼Œæ˜¾ç¤ºæ•ˆæœèŒƒå›´ï¼ˆçº¢è‰²ï¼‰
     if (CastRangeGrids.Contains(MouseGrid))
     {
         TArray<FIntPoint> EffectGrids = GetSkillRangeInWorldFromCenter(SkillData->EffectPattern, MouseGrid);
-        ShowEffectIndicators(EffectGrids); // ĞèÒªÔÚÀ¶Í¼ÖĞÊµÏÖ
+        ShowEffectIndicators(EffectGrids); // éœ€è¦åœ¨è“å›¾ä¸­å®ç°
     }
 }
 
-// »ùÓÚÌØ¶¨ÖĞĞÄµã¼ÆËã·¶Î§
+// åŸºäºç‰¹å®šä¸­å¿ƒç‚¹è®¡ç®—èŒƒå›´
 TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorldFromCenter(const TArray<FIntPoint>& Pattern, FIntPoint CenterGrid) const
 {
     TArray<FIntPoint> WorldGrids;
@@ -253,12 +253,14 @@ TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorldFromCenter(const TArray<FI
         return WorldGrids;
     }
 
+    // ä¿®æ”¹ï¼šå¼ºåˆ¶ä½¿ç”¨å››å‘å¯¹é½çš„æœå‘
     const FRotator CurrentRotation = GetActorRotation();
+    const FRotator SnappedRotation = UGridMovementComponent::SnapRotationToFourDirections(CurrentRotation);
 
     for (const FIntPoint& RelativePos : Pattern)
     {
         const FVector LocalPosVec(RelativePos.X, RelativePos.Y, 0);
-        const FVector RotatedVec = CurrentRotation.RotateVector(LocalPosVec);
+        const FVector RotatedVec = SnappedRotation.RotateVector(LocalPosVec);  // ä½¿ç”¨å¯¹é½åçš„æ—‹è½¬
         const FIntPoint RotatedOffset(FMath::RoundToInt(RotatedVec.X), FMath::RoundToInt(RotatedVec.Y));
 
         WorldGrids.Add(CenterGrid + RotatedOffset);
@@ -270,7 +272,7 @@ TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorldFromCenter(const TArray<FI
 
 void AHeroCharacter::OnSkillButtonPressed(int32 SkillIndex)
 {
-	// Ö»ÓĞÔÚ½ÇÉ«²»Ã¦µÄÊ±ºò²ÅÄÜ¿ªÊ¼¼¼ÄÜ²Ù×÷
+	// åªæœ‰åœ¨è§’è‰²ä¸å¿™çš„æ—¶å€™æ‰èƒ½å¼€å§‹æŠ€èƒ½æ“ä½œ
 	if (RootState == ECharacterRootState::Idle && SkillComponent)
 	{
 		SkillComponent->TryStartAiming(SkillIndex);
@@ -278,7 +280,7 @@ void AHeroCharacter::OnSkillButtonPressed(int32 SkillIndex)
 }
 void AHeroCharacter::OnConfirmSkill()
 {
-	// Ö±½Ó½«ÊäÈë×ª·¢¸øSkillComponent
+	// ç›´æ¥å°†è¾“å…¥è½¬å‘ç»™SkillComponent
 	if (SkillComponent)
 	{
 		SkillComponent->TryConfirmSkill();
@@ -295,7 +297,7 @@ void AHeroCharacter::OnCancelSkill()
 
 void AHeroCharacter::OnMove(const FInputActionValue& Value)
 {
-	// Ö»ÓĞÔÚIdle×´Ì¬ÏÂ²ÅÄÜ¿ªÊ¼ÒÆ¶¯
+	// åªæœ‰åœ¨IdleçŠ¶æ€ä¸‹æ‰èƒ½å¼€å§‹ç§»åŠ¨
 	if (RootState != ECharacterRootState::Idle ||
 		(SkillComponent && SkillComponent->GetCurrentSkillState() == ESkillState::Aiming) ||
 		(GridMovementComponent && GridMovementComponent->IsMoving())) return;
@@ -303,11 +305,11 @@ void AHeroCharacter::OnMove(const FInputActionValue& Value)
 	FVector2D MoveVector = Value.Get<FVector2D>();
 	if (MoveVector.IsNearlyZero()) return;
 
-	// ËÄ¸ö·½ÏòÀëÉ¢»¯£¨WASD£©
+	// å››ä¸ªæ–¹å‘ç¦»æ•£åŒ–ï¼ˆWASDï¼‰
 	MoveVector = MoveVector.GetSafeNormal();
 	int32 DeltaX = FMath::RoundToInt(MoveVector.X);
 	int32 DeltaY = FMath::RoundToInt(MoveVector.Y);
-	// ·ÀÖ¹¶Ô½ÇÏßÒÆ¶¯
+	// é˜²æ­¢å¯¹è§’çº¿ç§»åŠ¨
 	if (FMath::Abs(DeltaX) == 1 && FMath::Abs(DeltaY) == 1) {
 		return;
 	}
@@ -331,16 +333,18 @@ TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorld(const TArray<FIntPoint>& 
 
 
 	const FRotator CurrentRotation = GetActorRotation();
+	const FRotator SnappedRotation = UGridMovementComponent::SnapRotationToFourDirections(CurrentRotation);
 
 	for (const FIntPoint& RelativePos : Pattern)
 	{
-		// ½«Ä£°åÖĞµÄ±¾µØ×ø±ê (Ïà¶ÔÓÚ+X) ×ª»»Îª FVector
+		// å°†æ¨¡æ¿ä¸­çš„æœ¬åœ°åæ ‡ (ç›¸å¯¹äº+X) è½¬æ¢ä¸º FVector
 		const FVector LocalPosVec(RelativePos.X, RelativePos.Y, 0);
 
-		// Ê¹ÓÃ½ÇÉ«µ±Ç°µÄĞı×ªÀ´Ğı×ªÕâ¸öÏòÁ¿
-		const FVector RotatedVec = CurrentRotation.RotateVector(LocalPosVec);
+		// ä½¿ç”¨è§’è‰²å½“å‰çš„æ—‹è½¬æ¥æ—‹è½¬è¿™ä¸ªå‘é‡
+		// const FVector RotatedVec = CurrentRotation.RotateVector(LocalPosVec);
+		const FVector RotatedVec = SnappedRotation.RotateVector(LocalPosVec);  // ä½¿ç”¨å¯¹é½åçš„æ—‹è½¬
 
-		// ½«Ğı×ªºóµÄÊÀ½ç¿Õ¼äÆ«ÒÆÏòÁ¿£¬ËÄÉáÎåÈëÎªÍø¸ñÆ«ÒÆ
+		// å°†æ—‹è½¬åçš„ä¸–ç•Œç©ºé—´åç§»å‘é‡ï¼Œå››èˆäº”å…¥ä¸ºç½‘æ ¼åç§»
 		const FIntPoint RotatedOffset(FMath::RoundToInt(RotatedVec.X), FMath::RoundToInt(RotatedVec.Y));
 
 		WorldGrids.Add(FIntPoint(CurrentX + RotatedOffset.X, CurrentY + RotatedOffset.Y));
@@ -351,23 +355,23 @@ TArray<FIntPoint> AHeroCharacter::GetSkillRangeInWorld(const TArray<FIntPoint>& 
 	//{
 	//	FIntPoint RotatedPos = FIntPoint::ZeroValue;
 
-	//	// ´¦ÀíËÄ·½ÏòĞı×ªµÄ¹Ø¼üÂß¼­
-	//	// »ù´¡Ä£Ê½ÊÇÃæÏò X+ (1, 0)
-	//	if (Direction.X == 1 && Direction.Y == 0) // East (X+), »ù×¼·½Ïò
+	//	// å¤„ç†å››æ–¹å‘æ—‹è½¬çš„å…³é”®é€»è¾‘
+	//	// åŸºç¡€æ¨¡å¼æ˜¯é¢å‘ X+ (1, 0)
+	//	if (Direction.X == 1 && Direction.Y == 0) // East (X+), åŸºå‡†æ–¹å‘
 	//	{
 	//		RotatedPos = RelativePos;
 	//	}
-	//	else if (Direction.X == -1 && Direction.Y == 0) // West (X-), Ğı×ª180¶È
+	//	else if (Direction.X == -1 && Direction.Y == 0) // West (X-), æ—‹è½¬180åº¦
 	//	{
 	//		RotatedPos.X = -RelativePos.X;
 	//		RotatedPos.Y = -RelativePos.Y;
 	//	}
-	//	else if (Direction.X == 0 && Direction.Y == 1) // North (Y+), ÄæÊ±ÕëĞı×ª90¶È
+	//	else if (Direction.X == 0 && Direction.Y == 1) // North (Y+), é€†æ—¶é’ˆæ—‹è½¬90åº¦
 	//	{
 	//		RotatedPos.X = -RelativePos.Y;
 	//		RotatedPos.Y = RelativePos.X;
 	//	}
-	//	else if(Direction.X == 0 && Direction.Y == -1)// South (Y-), Ë³Ê±ÕëĞı×ª90¶È
+	//	else if(Direction.X == 0 && Direction.Y == -1)// South (Y-), é¡ºæ—¶é’ˆæ—‹è½¬90åº¦
 	//	{
 	//		RotatedPos.X = RelativePos.Y;
 	//		RotatedPos.Y = -RelativePos.X;
@@ -394,7 +398,7 @@ float AHeroCharacter::GetCurrentActualSpeed() const
 	return 0.0f;
 }
 
-// »ñÈ¡Êó±ê·½Ïò
+// è·å–é¼ æ ‡æ–¹å‘
 FVector AHeroCharacter::GetDirectionToMouse() const
 {
     APlayerController* PC = Cast<APlayerController>(GetController());
@@ -403,11 +407,11 @@ FVector AHeroCharacter::GetDirectionToMouse() const
         return FVector::ForwardVector;
     }
 
-    // »ñÈ¡Êó±êÔÚÊÀ½çÖĞµÄÎ»ÖÃ
+    // è·å–é¼ æ ‡åœ¨ä¸–ç•Œä¸­çš„ä½ç½®
     FVector WorldLocation, WorldDirection;
     PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
 
-    // ¼ÆËãÊó±êÖ¸ÏòµÄµØÃæÎ»ÖÃ
+    // è®¡ç®—é¼ æ ‡æŒ‡å‘çš„åœ°é¢ä½ç½®
     FVector PlaneOrigin = GetActorLocation();
     FVector MouseGroundPos = FMath::LinePlaneIntersection(
         WorldLocation,
@@ -416,7 +420,7 @@ FVector AHeroCharacter::GetDirectionToMouse() const
         FVector::UpVector
     );
 
-    // ¼ÆËã´Ó½ÇÉ«µ½Êó±êÎ»ÖÃµÄ·½ÏòÏòÁ¿
+    // è®¡ç®—ä»è§’è‰²åˆ°é¼ æ ‡ä½ç½®çš„æ–¹å‘å‘é‡
     FVector DirToMouse = (MouseGroundPos - GetActorLocation()).GetSafeNormal();
     
     return DirToMouse;

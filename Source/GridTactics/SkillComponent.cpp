@@ -119,46 +119,146 @@ void USkillComponent::CancelAiming()
 
 void USkillComponent::TryConfirmSkill()
 {
-    if (CurrentState != ESkillState::Aiming || AimingSkillIndex == -1) return;
-
-    if (TryActivateSkill(AimingSkillIndex))
+    if (CurrentState != ESkillState::Aiming || AimingSkillIndex == -1)
     {
-        CurrentState = ESkillState::Casting;
-        if (OwnerCharacter)
-        {
-            OwnerCharacter->HideRangeIndicators();
-        }
+        return;
+    }
 
-        const USkillDataAsset* SkillData = GetSkillData(AimingSkillIndex);
-        if (SkillData)
-        {
-            if (SkillData->TimeCost > 0.0f)
-            {
-                GetWorld()->GetTimerManager().SetTimer(CastingTimerHandle, this, &USkillComponent::FinishCasting, SkillData->TimeCost, false);
-            }
-            else
-            {
-                FinishCasting();
-            }
-        }
+    const USkillDataAsset* SkillData = GetSkillData(AimingSkillIndex);
+    if (!SkillData)
+    {
+        return;
+    }
+
+    // 验证技能是否可以激活（检查资源/冷却）
+    if (!SkillSlots.IsValidIndex(AimingSkillIndex))
+    {
+        return;
+    }
+
+    FSkillEntry& SkillEntry = SkillSlots[AimingSkillIndex];
+    if (!SkillEntry.SkillInstance || !SkillEntry.SkillInstance->CanActivate())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillComponent: Skill cannot be activated"));
+        CancelAiming();
+        return;
+    }
+
+    // 进入 Casting 状态
+    CurrentState = ESkillState::Casting;
+    CurrentCastingSkillIndex = AimingSkillIndex;
+    AimingSkillIndex = -1;
+
+    if (OwnerCharacter)
+    {
+        OwnerCharacter->HideRangeIndicators();
+    }
+
+    // 关键修改：根据 CastDelay 决定是否延迟执行
+    if (SkillData->CastDelay > 0.0f)
+    {
+        // 有前摇：延迟执行技能
+        GetWorld()->GetTimerManager().SetTimer(
+            CastDelayTimerHandle,
+            this,
+            &USkillComponent::OnCastDelayFinished,
+            SkillData->CastDelay,
+            false
+        );
+
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Casting skill %d with %.2fs delay"),
+            CurrentCastingSkillIndex, SkillData->CastDelay);
     }
     else
     {
-        // 激活失败，返回Idle
-        CurrentState = ESkillState::Idle;
-        AimingSkillIndex = -1;
-        if (OwnerCharacter)
-        {
-            OwnerCharacter->HideRangeIndicators();
-        }
+        // 无前摇：立即执行
+        OnCastDelayFinished();
     }
+}
+
+void USkillComponent::OnCastDelayFinished()
+{
+    if (!SkillSlots.IsValidIndex(CurrentCastingSkillIndex))
+    {
+        UE_LOG(LogTemp, Error, TEXT("SkillComponent: Invalid casting skill index"));
+        FinishCasting();
+        return;
+    }
+
+    FSkillEntry& SkillEntry = SkillSlots[CurrentCastingSkillIndex];
+    const USkillDataAsset* SkillData = SkillEntry.SkillData;
+
+    if (!SkillData)
+    {
+        FinishCasting();
+        return;
+    }
+
+    // 执行技能（调用 Activate）
+    if (SkillEntry.SkillInstance)
+    {
+        SkillEntry.SkillInstance->Activate();
+
+        // 设置冷却
+        SkillEntry.CooldownRemaining = SkillData->Cooldown;
+
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Skill %d executed after cast delay"),
+            CurrentCastingSkillIndex);
+    }
+
+    // 如果有 TimeCost，延迟返回 Idle
+    if (SkillData->TimeCost > 0.0f)
+    {
+        GetWorld()->GetTimerManager().SetTimer(
+            TimeCostTimerHandle,
+            this,
+            &USkillComponent::FinishCasting,
+            SkillData->TimeCost,
+            false
+        );
+
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Waiting %.2fs before finishing cast"),
+            SkillData->TimeCost);
+    }
+    else
+    {
+        // 无 TimeCost，立即返回 Idle
+        FinishCasting();
+    }
+}
+
+// 获取施法进度（用于UI显示）
+float USkillComponent::GetCastingProgress() const
+{
+    if (CurrentState != ESkillState::Casting)
+    {
+        return 0.0f;
+    }
+
+    if (!SkillSlots.IsValidIndex(CurrentCastingSkillIndex))
+    {
+        return 0.0f;
+    }
+
+    const USkillDataAsset* SkillData = SkillSlots[CurrentCastingSkillIndex].SkillData;
+    if (!SkillData || SkillData->CastDelay <= 0.0f)
+    {
+        return 1.0f;
+    }
+
+    float Remaining = GetWorld()->GetTimerManager().GetTimerRemaining(CastDelayTimerHandle);
+    return 1.0f - (Remaining / SkillData->CastDelay);
 }
 
 void USkillComponent::FinishCasting()
 {
     CurrentState = ESkillState::Idle;
-    AimingSkillIndex = -1;
-    GetWorld()->GetTimerManager().ClearTimer(CastingTimerHandle);
+    CurrentCastingSkillIndex = -1;
+
+    // 清理所有计时器
+    GetWorld()->GetTimerManager().ClearTimer(CastDelayTimerHandle);
+    GetWorld()->GetTimerManager().ClearTimer(TimeCostTimerHandle);
+
     UE_LOG(LogTemp, Log, TEXT("SkillComponent: Finished Casting, returning to Idle."));
 }
 

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -12,8 +12,8 @@ UENUM(BlueprintType)
 enum class EMovementState : uint8
 {
 	Idle,
-	Moving,				// WASDÒÆ¶¯
-	DisplacementMoving  // Î»ÒÆ¼¼ÄÜÒÆ
+	Moving,				// WASDç§»åŠ¨
+	DisplacementMoving  // ä½ç§»æŠ€èƒ½ç§»
 };
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GRIDTACTICS_API UGridMovementComponent : public UActorComponent
@@ -27,7 +27,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-    // --- Ô­ÓĞ½Ó¿Ú£¨±£³Ö¼æÈİ£© ---
+    // --- åŸæœ‰æ¥å£ï¼ˆä¿æŒå…¼å®¹ï¼‰ ---
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
     bool WorldToGrid(FVector WorldPos, int32& OutX, int32& OutY) const;
@@ -43,34 +43,50 @@ public:
 
     bool TryMoveOneStep(int32 DeltaX, int32 DeltaY);
 
-    // ÉèÖÃÄ¿±êĞı×ª£¨¹© HeroCharacter Ê¹ÓÃ£©
+    // è®¾ç½®ç›®æ ‡æ—‹è½¬ï¼ˆä¾› HeroCharacter ä½¿ç”¨ï¼‰
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void SetTargetRotation(const FRotator& NewRotation) { TargetRotation = NewRotation; }
-    // »ñÈ¡µ±Ç°ÒÆ¶¯ËÙ¶È£¨¹©¶¯»­À¶Í¼Ê¹ÓÃ£©
+    // è·å–å½“å‰ç§»åŠ¨é€Ÿåº¦ï¼ˆä¾›åŠ¨ç”»è“å›¾ä½¿ç”¨ï¼‰
     UFUNCTION(BlueprintPure, Category = "Movement")
     float GetCurrentActualSpeed() const;
 
-    // --- ĞÂ½Ó¿Ú£ºÎ»ÒÆÏµÍ³ ---
+    // --- æ–°æ¥å£ï¼šä½ç§»ç³»ç»Ÿ ---
 
     /**
-     * Ö´ĞĞÎ»ÒÆÂ·¾¶£¨ÓÉGridManagerµ÷ÓÃ£©
-     * @param Path Íø¸ñÂ·¾¶
-     * @param Duration ×ÜÖ´ĞĞÊ±¼ä
+     * æ‰§è¡Œä½ç§»è·¯å¾„ï¼ˆç”±GridManagerè°ƒç”¨ï¼‰
+     * @param Path ç½‘æ ¼è·¯å¾„
+     * @param Duration æ€»æ‰§è¡Œæ—¶é—´
      */
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void ExecuteDisplacementPath(const TArray<FIntPoint>& Path, float Duration);
 
     /**
-     * ÊÇ·ñÕıÔÚÖ´ĞĞÎ»ÒÆ
+     * æ–°å¢ï¼šå¸¦é«˜åº¦æ§åˆ¶çš„ä½ç§»æ‰§è¡Œ
+     * @param Path è·¯å¾„ç‚¹ï¼ˆç½‘æ ¼åæ ‡ï¼‰
+     * @param Duration æŒç»­æ—¶é—´
+     * @param StartHeightOffset èµ·å§‹é«˜åº¦åç§»
+     * @param EndHeightOffset ç›®æ ‡é«˜åº¦åç§»
+     * @param ArcPeakHeight æŠ›ç‰©çº¿é¡¶ç‚¹é«˜åº¦ï¼ˆ0 = æ— æŠ›ç‰©çº¿ï¼‰
      */
+    UFUNCTION(BlueprintCallable, Category = "Grid Movement|Displacement")
+    void ExecuteDisplacementPathWithHeight(
+        const TArray<FIntPoint>& Path,
+        float Duration,
+        float StartHeightOffset = 0.0f,
+        float EndHeightOffset = 0.0f,
+        float ArcPeakHeight = 0.0f
+    );
+    /** æ˜¯å¦æ­£åœ¨æ‰§è¡Œä½ç§» */
     UFUNCTION(BlueprintPure, Category = "Movement")
     bool IsExecutingDisplacement() const { return CurrentState == EMovementState::DisplacementMoving; }
 
-    /**
-     * Á¢¼´Í£Ö¹Î»ÒÆ
-     */
+    /** ç«‹å³åœæ­¢ä½ç§» */
     UFUNCTION(BlueprintCallable, Category = "Movement")
     void StopDisplacement();
+
+    /** å°†æ—‹è½¬å¯¹é½åˆ°å››å‘ç½‘æ ¼ */
+    UFUNCTION(BlueprintPure, Category = "Grid Movement")
+    static FRotator SnapRotationToFourDirections(const FRotator& Rotation);
 
 protected:
     virtual void BeginPlay() override;
@@ -84,27 +100,34 @@ private:
 
     EMovementState CurrentState = EMovementState::Idle;
 
-    // WASDÒÆ¶¯Êı¾İ
+    // WASDç§»åŠ¨æ•°æ®
     FRotator TargetRotation;
     FVector TargetLocation;
     FIntPoint CurrentTargetGrid;
 
-    // Î»ÒÆÏµÍ³Êı¾İ
+    // ä½ç§»ç³»ç»Ÿæ•°æ®
     TArray<FVector> DisplacementWorldPath;
     float DisplacementElapsedTime = 0.0f;
     float DisplacementTotalDuration = 0.0f;
 
+    // æ–°å¢ï¼šé«˜åº¦æ§åˆ¶å‚æ•°
+    float DisplacementStartHeight = 0.0f;
+    float DisplacementEndHeight = 0.0f;
+    float DisplacementArcHeight = 0.0f;
+    // æ–°å¢ï¼šç¼“å­˜ä½ç§»å¼€å§‹æ—¶çš„åˆå§‹é«˜åº¦
+    float DisplacementInitialHeight = 0.0f;
+
     UPROPERTY(EditDefaultsOnly, Category = "Movement")
     float GridSizeCM = 100.0f;
 
-    // Tick´¦Àíº¯Êı
+    // Tickå¤„ç†å‡½æ•°
     void HandleMovement(float DeltaTime);
     void HandleDisplacementMovement(float DeltaTime);
 
-    // --- ÓÃÓÚWASDÒÆ¶¯¼òµ¥¼ì²â ---
-    // ¼ì²éÍø¸ñ¿ÉĞĞ×ßĞÔ
+    // --- ç”¨äºWASDç§»åŠ¨ç®€å•æ£€æµ‹ ---
+    // æ£€æŸ¥ç½‘æ ¼å¯è¡Œèµ°æ€§
     bool IsGridWalkableSimple(int32 X, int32 Y) const;
 
-    // »ñÈ¡Íø¸ñÉÏµÄ½ÇÉ«
+    // è·å–ç½‘æ ¼ä¸Šçš„è§’è‰²
     AActor* GetActorAtGridSimple(int32 GridX, int32 GridY) const;
 };

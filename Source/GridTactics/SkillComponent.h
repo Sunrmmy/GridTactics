@@ -83,6 +83,10 @@ public:
 	// 新增：设置瞄准目标格子（在 Tick 或鼠标移动时更新）
 	void SetAimingTargetGrid(FIntPoint TargetGrid) { AimingTargetGrid = TargetGrid; }
 
+	// 新增：获取当前施法进度（用于 UI 显示）
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	float GetCastingProgress() const;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -99,6 +103,8 @@ private:
 	// 尝试激活指定索引的技能
 	bool TryActivateSkill(int32 SkillIndex);
 	void FinishCasting();
+	// 新增：处理施法延迟结束后的逻辑
+	void OnCastDelayFinished();
 
 	UPROPERTY()
 	TObjectPtr<AHeroCharacter> OwnerCharacter;
@@ -106,8 +112,15 @@ private:
 	// 技能状态变量
 	ESkillState CurrentState = ESkillState::Idle;
 	int32 AimingSkillIndex = -1;
-	FTimerHandle CastingTimerHandle;
 
-	// 新增：缓存瞄准的目标格子
+	// 缓存瞄准的目标格子
 	FIntPoint AimingTargetGrid = FIntPoint::ZeroValue;
+
+	FTimerHandle CastDelayTimerHandle;
+
+	// TimeCost 计时器（施法后的持续时间）
+	FTimerHandle TimeCostTimerHandle;
+
+	// 缓存当前施法的技能索引
+	int32 CurrentCastingSkillIndex = -1;
 };

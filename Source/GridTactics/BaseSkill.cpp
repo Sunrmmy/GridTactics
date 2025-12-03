@@ -99,6 +99,25 @@ bool UBaseSkill::ExecuteSkillEffects()
         AffectedActors.Num(),
         *TargetGrid.ToString());
 
+    // 新增：先验证所有关键 Effect 是否可以执行
+    for (USkillEffect* Effect : SkillData->SkillEffects)
+    {
+        if (!Effect)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Null Effect in SkillEffects array"));
+            continue;
+        }
+
+        // 检查是否可以执行
+        if (!Effect->CanExecute(OwnerCharacter, TargetGrid))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' CanExecute failed, ABORTING skill execution"),
+                *Effect->EffectName.ToString());
+
+            // 关键修改：任何 Effect 失败，整个技能中断
+            return false;
+        }
+    }
     // 3. 按顺序执行所有 Effect
     bool bAnySucceeded = false;
 
