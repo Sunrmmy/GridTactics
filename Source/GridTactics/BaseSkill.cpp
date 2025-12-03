@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "BaseSkill.h"
@@ -7,18 +7,19 @@
 #include "SkillDataAsset.h"
 #include "SkillComponent.h"
 #include "GridMovementComponent.h"
+#include "GridManager.h"
 #include "AttributesComponent.h"
+#include "Skills/SkillEffect.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
-#include "Engine/World.h"
 
 void UBaseSkill::Initialize(ACharacter* InOwner, const USkillDataAsset* InSkillData)
 {
-	OwnerCharacter = InOwner;
-	SkillData = InSkillData;
+    OwnerCharacter = InOwner;
+    SkillData = InSkillData;
+
     if (OwnerCharacter)
     {
-        // ÔÚ³õÊ¼»¯Ê±£¬Ò»´ÎĞÔÕÒµ½²¢»º´æ×é¼şµÄÒıÓÃ
         OwningComponent = OwnerCharacter->FindComponentByClass<USkillComponent>();
         AttributesComp = OwnerCharacter->FindComponentByClass<UAttributesComponent>();
     }
@@ -28,7 +29,7 @@ bool UBaseSkill::CanActivate_Implementation()
 {
 	if (!OwnerCharacter || !SkillData || !OwningComponent || !AttributesComp) return false;
 
-    // ¼ì²éÀäÈ´Ê±¼ä
+    // æ£€æŸ¥å†·å´æ—¶é—´
     const int32 SkillIndex = OwningComponent->GetSkillIndex(this);
     if (OwningComponent->GetCooldownRemaining(SkillIndex) > 0.0f)
     {
@@ -36,8 +37,10 @@ bool UBaseSkill::CanActivate_Implementation()
         return false;
     }
 
+    // æ£€æŸ¥èµ„æº
     bool bHasEnoughStamina = AttributesComp->GetStamina() >= SkillData->StaminaCost;
     bool bHasEnoughMP = AttributesComp->GetMP() >= SkillData->MPCost;
+
     if (!bHasEnoughMP)
     {
         UE_LOG(LogTemp, Warning, TEXT("Not enough MP to activate skill '%s'."), *SkillData->SkillName.ToString());
@@ -53,51 +56,164 @@ void UBaseSkill::Activate_Implementation()
 {
     if (!CanActivate_Implementation()) return;
 
-    // ÏûºÄÊôĞÔ×ÊÔ´
+    // æ¶ˆè€—å±æ€§èµ„æº
     if (AttributesComp)
     {
         AttributesComp->ConsumeStamina(SkillData->StaminaCost);
         AttributesComp->ConsumeMP(SkillData->MPCost);
     }
+
     UE_LOG(LogTemp, Warning, TEXT("Skill '%s' Activated!"), *SkillData->SkillName.ToString());
 
-    // »ñÈ¡ÒÆ¶¯×é¼ş£¬ÓÃÓÚ×ø±ê×ª»»
-    UGridMovementComponent* MovementComp = OwnerCharacter->FindComponentByClass<UGridMovementComponent>();
-    if (!MovementComp)
+    // ç›´æ¥æ‰§è¡Œ Effect ç³»ç»Ÿï¼ˆä¸å†æ£€æŸ¥å‘åå…¼å®¹ï¼‰
+    ExecuteSkillEffects();
+}
+
+// ========================================
+// Effect ç³»ç»Ÿå®ç°
+// ========================================
+
+bool UBaseSkill::ExecuteSkillEffects()
+{
+    if (!SkillData || SkillData->SkillEffects.Num() == 0)
     {
-        UE_LOG(LogTemp, Error, TEXT("Activate_Implementation failed: GridMovementComponent is missing."));
-        return;
+        UE_LOG(LogTemp, Error, TEXT("ExecuteSkillEffects: No SkillEffects defined in '%s'!"), 
+            *SkillData->SkillName.ToString());
+        return false;
     }
 
-    // »ñÈ¡¼¼ÄÜ·¶Î§ (ĞèÒª½« AHeroCharacter ×ª»»ÎªÍ¨ÓÃ ACharacter)
-    // ×¢Òâ£ºGetSkillRangeInWorld ÊÇ AHeroCharacter µÄº¯Êı£¬ÎÒÃÇĞèÒªÒ»ÖÖÍ¨ÓÃµÄ·½Ê½À´µ÷ÓÃËü¡£
-    // ×îºÃµÄ·½Ê½ÊÇ½«Õâ¸öº¯ÊıÒ²ÒÆµ½Ò»¸öÍ¨ÓÃµÄ»ùÀà»ò½Ó¿ÚÖĞ¡£
-    // ×÷ÎªÒ»¸öÁÙÊ±µÄ¡¢µ«ÓĞĞ§µÄ½â¾ö·½°¸£¬ÎÒÃÇ¿ÉÒÔ³¢ÊÔ½« OwnerCharacter ×ª»Ø AHeroCharacter¡£
-    // µ«ÎªÁË³¤ÆÚµÄ½¡×³ĞÔ£¬ÄúÓ¦¸Ã¿¼ÂÇ´´½¨Ò»¸ö AGridTacticsCharacter »ùÀà¡£
-    TArray<FIntPoint> WorldGrids;
-    if (auto GridTacticsChar = Cast<AHeroCharacter>(OwnerCharacter))
+    // 1. è·å–ç›®æ ‡æ ¼å­
+    FIntPoint TargetGrid = GetTargetGrid();
+
+    if (TargetGrid == FIntPoint::ZeroValue)
     {
-        WorldGrids = GridTacticsChar->GetSkillRangeInWorld(SkillData->RangePattern);
+        UE_LOG(LogTemp, Warning, TEXT("ExecuteSkillEffects: Invalid target grid"));
+        return false;
+    }
+
+    // 2. è·å–å—å½±å“çš„è§’è‰²
+    TArray<AActor*> AffectedActors = GetAffectedActors(TargetGrid);
+
+    UE_LOG(LogTemp, Log, TEXT("  Executing %d effects on %d actors at grid %s"),
+        SkillData->SkillEffects.Num(),
+        AffectedActors.Num(),
+        *TargetGrid.ToString());
+
+    // 3. æŒ‰é¡ºåºæ‰§è¡Œæ‰€æœ‰ Effect
+    bool bAnySucceeded = false;
+
+    for (USkillEffect* Effect : SkillData->SkillEffects)
+    {
+        if (!Effect)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Null Effect in SkillEffects array"));
+            continue;
+        }
+
+        // æ£€æŸ¥æ˜¯å¦å¯ä»¥æ‰§è¡Œ
+        if (!Effect->CanExecute(OwnerCharacter, TargetGrid))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' CanExecute failed, skipping"),
+                *Effect->EffectName.ToString());
+            continue;
+        }
+
+        // æ‰§è¡Œ Effect
+        bool bSuccess = Effect->Execute(OwnerCharacter, TargetGrid, AffectedActors);
+
+        if (bSuccess)
+        {
+            UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed successfully"),
+                *Effect->EffectName.ToString());
+            bAnySucceeded = true;
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' execution failed"),
+                *Effect->EffectName.ToString());
+        }
+    }
+
+    return bAnySucceeded;
+}
+
+FIntPoint UBaseSkill::GetTargetGrid() const
+{
+    if (!OwnerCharacter || !SkillData || !OwningComponent)
+    {
+        return FIntPoint::ZeroValue;
+    }
+
+    AGridManager* GridMgr = Cast<AGridManager>(
+        UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass())
+    );
+
+    if (!GridMgr)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GetTargetGrid: GridManager not found"));
+        return FIntPoint::ZeroValue;
+    }
+
+    // æ ¹æ® TargetType å†³å®šç›®æ ‡æ ¼å­
+    switch (SkillData->TargetType)
+    {
+    case ESkillTargetType::Self:
+        // ç›®æ ‡æ˜¯è‡ªå·±çš„å½“å‰æ ¼å­
+        return GridMgr->GetActorCurrentGrid(OwnerCharacter);
+
+    case ESkillTargetType::Direction:
+    case ESkillTargetType::TargetGrid:
+        // ä» SkillComponent è·å–ç„å‡†çš„ç›®æ ‡æ ¼å­
+        return OwningComponent->GetAimingTargetGrid();
+
+    case ESkillTargetType::TargetEnemy:
+        // TODO: è‡ªåŠ¨å¯»æ‰¾æœ€è¿‘çš„æ•Œäºº
+        return GridMgr->GetActorCurrentGrid(OwnerCharacter);
+
+    default:
+        return FIntPoint::ZeroValue;
+    }
+}
+
+TArray<AActor*> UBaseSkill::GetAffectedActors(FIntPoint TargetGrid) const
+{
+    TArray<AActor*> AffectedActors;
+
+    UGridMovementComponent* MovementComp = GetGridMovementComponent();
+    if (!MovementComp || !SkillData)
+    {
+        return AffectedActors;
+    }
+
+    // ä½¿ç”¨ EffectPatternï¼ˆå¦‚æœä¸ºç©ºåˆ™ä½¿ç”¨ RangePatternï¼‰
+    TArray<FIntPoint> PatternToUse = SkillData->EffectPattern.Num() > 0
+        ? SkillData->EffectPattern
+        : SkillData->RangePattern;
+
+    // å°† Pattern è½¬æ¢ä¸ºä¸–ç•Œåæ ‡æ ¼å­
+    TArray<FIntPoint> WorldGrids;
+    
+    if (auto Hero = Cast<AHeroCharacter>(OwnerCharacter))
+    {
+        // ä½¿ç”¨ HeroCharacter çš„è½¬æ¢å‡½æ•°ï¼ˆè€ƒè™‘æœå‘ï¼‰
+        WorldGrids = Hero->GetSkillRangeInWorldFromCenter(PatternToUse, TargetGrid);
     }
     else
     {
-        // Èç¹ûÎ´À´ÓĞÆäËûÀàĞÍµÄ½ÇÉ«£¬ÕâÀïĞèÒªÌí¼ÓÏàÓ¦µÄÂß¼­
-        UE_LOG(LogTemp, Error, TEXT("Activate_Implementation failed: OwnerCharacter is not a AHeroCharacter, cannot get skill range."));
-        return;
+        // ç›´æ¥ä½¿ç”¨ç›¸å¯¹åæ ‡
+        for (const FIntPoint& RelativePos : PatternToUse)
+        {
+            WorldGrids.Add(TargetGrid + RelativePos);
+        }
     }
 
-
-    // ×¼±¸ÖØµş¼ì²â²ÎÊı
-    TArray<AActor*> ActorsToIgnore;
-    ActorsToIgnore.Add(OwnerCharacter); // ºöÂÔÊ©·¨Õß×Ô¼º
-
-    // ¶¨ÒåÎÒÃÇÏëÒª¼ì²âµÄ¶ÔÏóÀàĞÍ£¬ÕâÀïÒÔPawnÎªÀı
+    // æ£€æµ‹æ¯ä¸ªæ ¼å­ä¸Šçš„è§’è‰²
     TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
-    TSet<AActor*> DamagedActors; // Ê¹ÓÃTSet·ÀÖ¹¶ÔÍ¬Ò»¸öActorÔì³É¶à´ÎÉËº¦
+    TArray<AActor*> ActorsToIgnore;
+    ActorsToIgnore.Add(OwnerCharacter);
 
-    // ±éÀú·¶Î§¸ñ×Ó£¬ÔÚÃ¿¸ö¸ñ×ÓÉÏ¼ì²âµĞÈË
     for (const FIntPoint& Grid : WorldGrids)
     {
         FVector WorldLocation = MovementComp->GridToWorld(Grid.X, Grid.Y);
@@ -106,28 +222,28 @@ void UBaseSkill::Activate_Implementation()
         UKismetSystemLibrary::SphereOverlapActors(
             GetWorld(),
             WorldLocation,
-            50.0f, // °ë¾¶50cm£¬È·±£ÄÜ¸²¸Ç¸ñ×ÓÖĞĞÄ
+            50.0f, // åŠå¾„50cmï¼Œç¡®ä¿èƒ½è¦†ç›–æ ¼å­ä¸­å¿ƒ
             ObjectTypes,
-            nullptr, // ²»°´ÌØ¶¨Àà¹ıÂË£¬Ò²¿ÉÒÔÖ¸¶¨ÎªµĞÈË»ùÀà
+            nullptr, // ä¸æŒ‰ç‰¹å®šç±»è¿‡æ»¤ï¼Œä¹Ÿå¯ä»¥æŒ‡å®šä¸ºæ•ŒäººåŸºç±»
             ActorsToIgnore,
             OverlappedActors
         );
-        DrawDebugSphere(GetWorld(), WorldLocation, 50, 12, FColor::Blue, false, 2.0f);
 
-        for (AActor* OverlappedActor : OverlappedActors)
+        for (AActor* Actor : OverlappedActors)
         {
-            // È·±£ÎÒÃÇÃ»ÓĞÖØ¸´´¦ÀíÍ¬Ò»¸öActor
-            if (!DamagedActors.Contains(OverlappedActor))
-            {
-                // ²éÕÒÄ¿±êÉíÉÏµÄAttributesComponentÀ´Ê©¼ÓÉËº¦
-                if (UAttributesComponent* TargetAttrs = OverlappedActor->FindComponentByClass<UAttributesComponent>())
-                {
-                    TargetAttrs->ApplyDamage(SkillData->Damage);
-                    DamagedActors.Add(OverlappedActor);
-                    UE_LOG(LogTemp, Log, TEXT("Damaged Actor: %s"), *OverlappedActor->GetName());
-                }
-            }
-        } 
+            AffectedActors.AddUnique(Actor);
+        }
     }
-    // ¾ßÌåµÄÊÓ¾õĞ§¹û£¨ÈçÁ£×Ó¡¢ÉùÒô£©ÔÚÀ¶Í¼×ÓÀàµÄActivateÊÂ¼şÖĞÊµÏÖ¡£
+
+    return AffectedActors;
+}
+
+UGridMovementComponent* UBaseSkill::GetGridMovementComponent() const
+{
+    if (!OwnerCharacter)
+    {
+        return nullptr;
+    }
+
+    return OwnerCharacter->FindComponentByClass<UGridMovementComponent>();
 }

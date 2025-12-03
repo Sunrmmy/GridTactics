@@ -10,13 +10,15 @@ class ACharacter;
 class USkillDataAsset;
 class USkillComponent;
 class UAttributesComponent;
-UCLASS(Blueprintable, BlueprintType, Abstract)  //Blueprintable, BlueprintType 通常用于可配置的“Buff 效果类”，既希望被蓝图继承（扩展新 Buff），又希望作为变量传入函数
+class UGridMovementComponent;
+
+UCLASS(Blueprintable, BlueprintType, Abstract)
 class GRIDTACTICS_API UBaseSkill : public UObject
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
+
 public:
-    // 初始化技能，由SkillComponent调用
+    // 初始化技能，由 SkillComponent 调用
     virtual void Initialize(ACharacter* InOwner, const USkillDataAsset* InSkillData);
 
     // 检查技能是否可以被激活
@@ -31,6 +33,42 @@ public:
     virtual void Activate_Implementation();
 
 protected:
+    // ========================================
+    // Effect 系统核心函数
+    // ========================================
+
+    /**
+     * 执行技能的所有 Effect
+     * @return 是否至少有一个 Effect 成功执行
+     */
+    UFUNCTION(BlueprintCallable, Category = "Skill")
+    virtual bool ExecuteSkillEffects();
+
+    /**
+     * 获取目标网格坐标（根据 TargetType）
+     * @return 目标格子坐标
+     */
+    UFUNCTION(BlueprintPure, Category = "Skill")
+    virtual FIntPoint GetTargetGrid() const;
+
+    /**
+     * 获取受影响的角色列表
+     * @param TargetGrid 目标格子
+     * @return 受影响的角色数组
+     */
+    UFUNCTION(BlueprintCallable, Category = "Skill")
+    virtual TArray<AActor*> GetAffectedActors(FIntPoint TargetGrid) const;
+
+    /**
+     * 获取 GridMovementComponent（缓存优化）
+     */
+    UFUNCTION(BlueprintPure, Category = "Skill")
+    UGridMovementComponent* GetGridMovementComponent() const;
+
+    // ========================================
+    // 组件引用
+    // ========================================
+
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
     TObjectPtr<ACharacter> OwnerCharacter;
 

@@ -78,12 +78,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
 	float MaxHP = 100.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseHPRecoveryRate = 1.0f;
+	float BaseHPRecoveryRate = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
 	float MaxMP = 10.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
-	float BaseMPRecoveryRate = 1.0f;
+	float BaseMPRecoveryRate = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
 	float MaxStamina = 5.0f;

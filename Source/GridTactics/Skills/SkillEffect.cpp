@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SkillEffect.h"
 #include "GridTactics/GridManager.h"
@@ -7,25 +7,43 @@
 
 bool USkillEffect::Execute_Implementation(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors)
 {
-    // »ùÀàÄ¬ÈÏÊµÏÖÊ²Ã´¶¼²»×ö
+    // åŸºç±»é»˜è®¤å®ç°ä»€ä¹ˆéƒ½ä¸åš
     UE_LOG(LogTemp, Warning, TEXT("SkillEffect::Execute called on base class! Override this in subclass."));
     return false;
 }
 
 bool USkillEffect::CanExecute_Implementation(AActor* Instigator, FIntPoint TargetGrid) const
 {
-    // Ä¬ÈÏ£º×ÜÊÇ¿ÉÒÔÖ´ĞĞ
+    // é»˜è®¤ï¼šæ€»æ˜¯å¯ä»¥æ‰§è¡Œ
     return true;
 }
 
-AGridManager* USkillEffect::GetGridManager() const
+AGridManager* USkillEffect::GetGridManager(AActor* WorldContextObject) const
 {
-    if (!GetWorld())
+    // ä¿®å¤ï¼šä» WorldContextObject è·å– World
+    if (!WorldContextObject)
     {
+        UE_LOG(LogTemp, Error, TEXT("SkillEffect::GetGridManager - WorldContextObject is null!"));
         return nullptr;
     }
 
-    return Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
+    UWorld* World = WorldContextObject->GetWorld();
+    if (!World)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SkillEffect::GetGridManager - World is null!"));
+        return nullptr;
+    }
+
+    AGridManager* GridMgr = Cast<AGridManager>(
+        UGameplayStatics::GetActorOfClass(World, AGridManager::StaticClass())
+    );
+
+    if (!GridMgr)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SkillEffect::GetGridManager - No GridManager found in the world!"));
+    }
+
+    return GridMgr;
 }
 
 bool USkillEffect::HasAuthority(AActor* Instigator) const
@@ -35,8 +53,8 @@ bool USkillEffect::HasAuthority(AActor* Instigator) const
         return false;
     }
 
-    // µ¥»úÄ£Ê½ÏÂ×ÜÊÇ·µ»Ø true
-    // Áª»úÄ£Ê½ÏÂ¼ì²éÊÇ·ñÔÚ·şÎñÆ÷
+    // å•æœºæ¨¡å¼ä¸‹æ€»æ˜¯è¿”å› true
+    // è”æœºæ¨¡å¼ä¸‹æ£€æŸ¥æ˜¯å¦åœ¨æœåŠ¡å™¨
     return Instigator->HasAuthority();
 }
 

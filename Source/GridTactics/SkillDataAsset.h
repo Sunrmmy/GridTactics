@@ -17,16 +17,16 @@ enum class ESkillTargetType : uint8
 	TargetEnemy     UMETA(DisplayName = "TargetEnemy")     // 指定敌人（自动寻敌）
 };
 
-// 技能效果类型
-UENUM(BlueprintType)
-enum class ESkillEffectType : uint8
-{
-	Damage          UMETA(DisplayName = "Damage"),
-	Heal            UMETA(DisplayName = "Heal"),
-	Buff            UMETA(DisplayName = "Buff"),
-	Debuff          UMETA(DisplayName = "Debuff"),
-	Displacement    UMETA(DisplayName = "Displacement")    // 位移
-};
+//// 技能效果类型
+//UENUM(BlueprintType)
+//enum class ESkillEffectType : uint8
+//{
+//	Damage          UMETA(DisplayName = "Damage"),
+//	Heal            UMETA(DisplayName = "Heal"),
+//	Buff            UMETA(DisplayName = "Buff"),
+//	Debuff          UMETA(DisplayName = "Debuff"),
+//	Displacement    UMETA(DisplayName = "Displacement")    // 位移
+//};
 
 UCLASS(BlueprintType)
 class GRIDTACTICS_API USkillDataAsset : public UDataAsset
@@ -65,9 +65,9 @@ public:
 	// 技能目标类型
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Type")
 	ESkillTargetType TargetType = ESkillTargetType::Direction;
-	// 技能效果类型
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Type")
-	ESkillEffectType EffectType = ESkillEffectType::Damage;
+	//// 技能效果类型
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Type")
+	//ESkillEffectType EffectType = ESkillEffectType::Damage;
 
 	// --- 技能消耗 ---
 
@@ -89,51 +89,63 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Advanced", meta = (ClampMin = "0.0", ClampMax = "3.0"))
 	float CastDelay = 0.0f;
 
-	// --- 技能效果 ---
+	//// --- 技能效果 ---
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects")
-	float Damage = 0.0f;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects")
+	//float Damage = 0.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给目标的效果"))
-	TArray<FAttributeModifier> TargetModifiers;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给目标的效果"))
+	//TArray<FAttributeModifier> TargetModifiers;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给自己的效果"))
-	TArray<FAttributeModifier> SelfModifiers;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "施加给自己的效果"))
+	//TArray<FAttributeModifier> SelfModifiers;
 
-	// --- 技能的位移属性 ---
+	//// --- 技能的位移属性 ---
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Movement", meta = (ClampMin = "0"))
-	int32 MovementDistance = 0;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Movement", meta = (ClampMin = "0"))
+	//int32 MovementDistance = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
-	bool bRequiresTargetGrid = false;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
+	//bool bRequiresTargetGrid = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic", meta = (EditCondition = "bRequiresTargetGrid", ClampMin = "0"))
-	int32 MaxMovementRange = 5;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic", meta = (EditCondition = "bRequiresTargetGrid", ClampMin = "0"))
+	//int32 MaxMovementRange = 5;
 
-	// --- 冲锋专用属性 ---
-	// 
-	// 冲刺距离（网格数）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "10"))
-	int32 DashDistance = 3;
+	//// --- 冲锋专用属性 ---
+	//// 
+	//// 冲刺距离（网格数）
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "10"))
+	//int32 DashDistance = 3;
 
-	// 击退距离（网格数）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "5"))
-	int32 KnockbackDistance = 2;
+	//// 击退距离（网格数）
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "5"))
+	//int32 KnockbackDistance = 2;
 
-	// 是否在碰撞后停止（false=穿透）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
-	bool bStopOnCollision = true;
+	//// 是否在碰撞后停止（false=穿透）
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
+	//bool bStopOnCollision = true;
 
-	// 是否启用链式击退
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
-	bool bEnableChainKnockback = false;
+	//// 是否启用链式击退
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
+	//bool bEnableChainKnockback = false;
 
-	// 冲刺持续时间（秒）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0.1", ClampMax = "2.0"))
-	float ChargeDuration = 0.3f;
+	//// 冲刺持续时间（秒）
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0.1", ClampMax = "2.0"))
+	//float ChargeDuration = 0.3f;
 
-	// 对被撞击敌人造成的额外伤害（叠加到 Damage）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0"))
-	float CollisionDamage = 0.0f;
+	//// 对被撞击敌人造成的额外伤害（叠加到 Damage）
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0"))
+	//float CollisionDamage = 0.0f;
+
+	// ========================================
+	// 可组合的 Effect 列表
+	// ========================================
+
+	/**
+	 * 技能效果列表（在编辑器中实例化并配置）
+	 * 按顺序执行，如果某个 Effect 返回 false 则中断后续执行
+	 */
+	UPROPERTY(EditAnywhere, Instanced, Category = "Skill Effects", meta = (DisplayName = "Skill Effects (Required)"))
+	TArray<TObjectPtr<class USkillEffect>> SkillEffects;
+
 };

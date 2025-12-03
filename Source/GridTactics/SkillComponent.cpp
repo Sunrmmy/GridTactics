@@ -1,10 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "SkillComponent.h"
 #include "SkillDataAsset.h"
+#include "GridManager.h"
 #include "BaseSkill.h"
 #include "HeroCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
 USkillComponent::USkillComponent()
@@ -24,7 +26,7 @@ void USkillComponent::BeginPlay()
 	OwnerCharacter = Cast<AHeroCharacter>(GetOwner());
 	if (!OwnerCharacter) return;
 
-    // »ùÓÚÊı¾İ×Ê²ú£¬ÊµÀı»¯¼¼ÄÜÂß¼­¶ÔÏó
+    // åŸºäºæ•°æ®èµ„äº§ï¼Œå®ä¾‹åŒ–æŠ€èƒ½é€»è¾‘å¯¹è±¡
     for (const USkillDataAsset* DataAsset : EquippedSkillsData)
     {
         if (DataAsset && DataAsset->SkillLogicClass)
@@ -44,12 +46,39 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    // ¸üĞÂËùÓĞ¼¼ÄÜµÄÀäÈ´Ê±¼ä
+    // æ›´æ–°æ‰€æœ‰æŠ€èƒ½çš„å†·å´æ—¶é—´
     for (FSkillEntry& SkillEntry : SkillSlots)
     {
         if (SkillEntry.CooldownRemaining > 0.0f)
         {
             SkillEntry.CooldownRemaining = FMath::Max(0.0f, SkillEntry.CooldownRemaining - DeltaTime);
+        }
+    }
+
+    // æ–°å¢ï¼šåœ¨ Aiming çŠ¶æ€ä¸‹æ›´æ–°ç›®æ ‡æ ¼å­
+    if (CurrentState == ESkillState::Aiming && OwnerCharacter)
+    {
+        // ä»é¼ æ ‡ä½ç½®è·å–ç›®æ ‡æ ¼å­
+        APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+        if (PC)
+        {
+            FVector WorldLocation, WorldDirection;
+            PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+            // è®¡ç®—é¼ æ ‡æŒ‡å‘çš„åœ°é¢ä½ç½®
+            FVector MouseGroundPos = FMath::LinePlaneIntersection(
+                WorldLocation,
+                WorldLocation + WorldDirection * 10000.f,
+                FVector::ZeroVector,
+                FVector::UpVector
+            );
+
+            // è½¬æ¢ä¸ºç½‘æ ¼åæ ‡
+            if (AGridManager* GridMgr = Cast<AGridManager>(
+                UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass())))
+            {
+                AimingTargetGrid = GridMgr->WorldToGrid(MouseGroundPos);
+            }
         }
     }
 }
@@ -115,7 +144,7 @@ void USkillComponent::TryConfirmSkill()
     }
     else
     {
-        // ¼¤»îÊ§°Ü£¬·µ»ØIdle
+        // æ¿€æ´»å¤±è´¥ï¼Œè¿”å›Idle
         CurrentState = ESkillState::Idle;
         AimingSkillIndex = -1;
         if (OwnerCharacter)
@@ -139,18 +168,18 @@ bool USkillComponent::TryActivateSkill(int32 SkillIndex)
 
     FSkillEntry& SkillEntry = SkillSlots[SkillIndex];
 
-    // ¼ì²éÀäÈ´ºÍÄÜ·ñ¼¤»î
+    // æ£€æŸ¥å†·å´å’Œèƒ½å¦æ¿€æ´»
     if (SkillEntry.SkillInstance && SkillEntry.SkillInstance->CanActivate())
     {
         SkillEntry.SkillInstance->Activate();
-        // ÉèÖÃÀäÈ´Ê±¼ä
+        // è®¾ç½®å†·å´æ—¶é—´
         SkillEntry.CooldownRemaining = SkillEntry.SkillData->Cooldown;
-        return true;    // ¼¼ÄÜ¼¤»î³É¹¦
+        return true;    // æŠ€èƒ½æ¿€æ´»æˆåŠŸ
     }
     return false;
 }
 
-float USkillComponent::GetCooldownRemaining(int32 SkillIndex) const     // ½«¼¼ÄÜcdÊ£ÓàÊ±¼ä´«¸øBaseSkillµÄCanActivateº¯ÊıÀ´ÅĞ¶Ï¼¼ÄÜÊÇ·ñ¿ÉÓÃ
+float USkillComponent::GetCooldownRemaining(int32 SkillIndex) const     // å°†æŠ€èƒ½cdå‰©ä½™æ—¶é—´ä¼ ç»™BaseSkillçš„CanActivateå‡½æ•°æ¥åˆ¤æ–­æŠ€èƒ½æ˜¯å¦å¯ç”¨
 {
     if (SkillSlots.IsValidIndex(SkillIndex))
     {
@@ -161,14 +190,14 @@ float USkillComponent::GetCooldownRemaining(int32 SkillIndex) const     // ½«¼¼Ä
 
 const USkillDataAsset* USkillComponent::GetSkillData(int32 SkillIndex) const
 {
-    // ¼ì²éË÷ÒıÊÇ·ñÔÚÓĞĞ§·¶Î§ÄÚ
+    // æ£€æŸ¥ç´¢å¼•æ˜¯å¦åœ¨æœ‰æ•ˆèŒƒå›´å†…
     if (SkillSlots.IsValidIndex(SkillIndex))
     {
-        // ·µ»Ø¶ÔÓ¦¼¼ÄÜ²å²ÛÖĞµÄÊı¾İ×Ê²úÖ¸Õë
+        // è¿”å›å¯¹åº”æŠ€èƒ½æ’æ§½ä¸­çš„æ•°æ®èµ„äº§æŒ‡é’ˆ
         return SkillSlots[SkillIndex].SkillData;
     }
 
-    // Èç¹ûË÷ÒıÎŞĞ§£¬·µ»Ø¿ÕÖ¸Õë
+    // å¦‚æœç´¢å¼•æ— æ•ˆï¼Œè¿”å›ç©ºæŒ‡é’ˆ
     return nullptr;
 }
 
@@ -181,5 +210,5 @@ int32 USkillComponent::GetSkillIndex(const UBaseSkill* SkillInstance) const
             return i;
         }
     }
-    return INDEX_NONE;  //ÕÒ²»µ½Ôò·µ»Ø-1
+    return INDEX_NONE;  //æ‰¾ä¸åˆ°åˆ™è¿”å›-1
 }

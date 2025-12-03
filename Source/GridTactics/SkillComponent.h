@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,7 +10,7 @@ class USkillDataAsset;
 class UBaseSkill;
 class AHeroCharacter;
 
-// ¶¨Òå¼¼ÄÜ×é¼ş×ÔÉíµÄ×´Ì¬
+// å®šä¹‰æŠ€èƒ½ç»„ä»¶è‡ªèº«çš„çŠ¶æ€
 UENUM(BlueprintType)
 enum class ESkillState : uint8
 {
@@ -46,58 +46,68 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 
-	// ³¢ÊÔ¿ªÊ¼Ãé×¼Ò»¸ö¼¼ÄÜ
+	// å°è¯•å¼€å§‹ç„å‡†ä¸€ä¸ªæŠ€èƒ½
 	UFUNCTION(BlueprintCallable, Category = "Skills")
 	void TryStartAiming(int32 SkillIndex);
-	// ³¢ÊÔÈ·ÈÏ²¢¼¤»îµ±Ç°ÕıÔÚÃé×¼µÄ¼¼ÄÜ
+	// å°è¯•ç¡®è®¤å¹¶æ¿€æ´»å½“å‰æ­£åœ¨ç„å‡†çš„æŠ€èƒ½
 	UFUNCTION(BlueprintCallable, Category = "Skills")
 	void TryConfirmSkill();
-	// È¡ÏûÃé×¼
+	// å–æ¶ˆç„å‡†
 	UFUNCTION(BlueprintCallable, Category = "Skills")
 	void CancelAiming();
 
 
-	// ¸ù¾İ¼¼ÄÜÊµÀı»ñÈ¡ÆäÔÚ¼¼ÄÜ²å²ÛÖĞµÄË÷Òı
+	// æ ¹æ®æŠ€èƒ½å®ä¾‹è·å–å…¶åœ¨æŠ€èƒ½æ’æ§½ä¸­çš„ç´¢å¼•
 	int32 GetSkillIndex(const UBaseSkill* SkillInstance) const;
 
 
-	// »ñÈ¡Ö¸¶¨Ë÷ÒıµÄ¼¼ÄÜÊı¾İ×Ê²ú£¨SkillIndexÎª¼¼ÄÜÔÚ²å²ÛÖĞµÄË÷Òı£©
+	// è·å–æŒ‡å®šç´¢å¼•çš„æŠ€èƒ½æ•°æ®èµ„äº§ï¼ˆSkillIndexä¸ºæŠ€èƒ½åœ¨æ’æ§½ä¸­çš„ç´¢å¼•ï¼‰
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	const USkillDataAsset* GetSkillData(int32 SkillIndex) const;
 
-	// »ñÈ¡Ö¸¶¨Ë÷Òı¼¼ÄÜµÄÊ£ÓàÀäÈ´Ê±¼ä
+	// è·å–æŒ‡å®šç´¢å¼•æŠ€èƒ½çš„å‰©ä½™å†·å´æ—¶é—´
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	float GetCooldownRemaining(int32 SkillIndex) const;
 
-	// »ñÈ¡µ±Ç°×´Ì¬
+	// è·å–å½“å‰çŠ¶æ€
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	ESkillState GetCurrentSkillState() const { return CurrentState; }
 
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	int32 GetAimingSkillIndex() const { return AimingSkillIndex; }
 
+	// æ–°å¢ï¼šè·å–å½“å‰ç„å‡†çš„ç›®æ ‡æ ¼å­
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	FIntPoint GetAimingTargetGrid() const { return AimingTargetGrid; }
+
+	// æ–°å¢ï¼šè®¾ç½®ç„å‡†ç›®æ ‡æ ¼å­ï¼ˆåœ¨ Tick æˆ–é¼ æ ‡ç§»åŠ¨æ—¶æ›´æ–°ï¼‰
+	void SetAimingTargetGrid(FIntPoint TargetGrid) { AimingTargetGrid = TargetGrid; }
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	// ÔÚ×¼±¸½×¶Î»òÓÎÏ·¿ªÊ¼Ê±ÉèÖÃµÄ¼¼ÄÜÁĞ±í
+	// åœ¨å‡†å¤‡é˜¶æ®µæˆ–æ¸¸æˆå¼€å§‹æ—¶è®¾ç½®çš„æŠ€èƒ½åˆ—è¡¨
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TArray<TObjectPtr<USkillDataAsset>> EquippedSkillsData;
 
-	// ÔËĞĞÊ±ÊµÀı»¯µÄ¼¼ÄÜ
+	// è¿è¡Œæ—¶å®ä¾‹åŒ–çš„æŠ€èƒ½
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Skills")
 	TArray<FSkillEntry> SkillSlots;
 
 private:
-	// ³¢ÊÔ¼¤»îÖ¸¶¨Ë÷ÒıµÄ¼¼ÄÜ
+	// å°è¯•æ¿€æ´»æŒ‡å®šç´¢å¼•çš„æŠ€èƒ½
 	bool TryActivateSkill(int32 SkillIndex);
 	void FinishCasting();
 
 	UPROPERTY()
 	TObjectPtr<AHeroCharacter> OwnerCharacter;
 
-	// ¼¼ÄÜ×´Ì¬±äÁ¿
+	// æŠ€èƒ½çŠ¶æ€å˜é‡
 	ESkillState CurrentState = ESkillState::Idle;
 	int32 AimingSkillIndex = -1;
 	FTimerHandle CastingTimerHandle;
+
+	// æ–°å¢ï¼šç¼“å­˜ç„å‡†çš„ç›®æ ‡æ ¼å­
+	FIntPoint AimingTargetGrid = FIntPoint::ZeroValue;
 };

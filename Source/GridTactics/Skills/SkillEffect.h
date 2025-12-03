@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -10,11 +10,11 @@ class AActor;
 class AGridManager;
 
 /**
- * ¼¼ÄÜĞ§¹û»ùÀà - ËùÓĞĞ§¹ûµÄ³éÏó½Ó¿Ú
- * ÌØµã£º
- * - EditInlineNew£º¿ÉÔÚ DataAsset ÖĞÊµÀı»¯
- * - Blueprintable£ºÖ§³ÖÀ¶Í¼À©Õ¹
- * - ÍøÂçÓÑºÃ£ºÔ¤Áô Authority ¼ì²é
+ * æŠ€èƒ½æ•ˆæœåŸºç±» - æ‰€æœ‰æ•ˆæœçš„æŠ½è±¡æ¥å£
+ * ç‰¹ç‚¹ï¼š
+ * - EditInlineNewï¼šå¯åœ¨ DataAsset ä¸­å®ä¾‹åŒ–
+ * - Blueprintableï¼šæ”¯æŒè“å›¾æ‰©å±•
+ * - ç½‘ç»œå‹å¥½ï¼šé¢„ç•™ Authority æ£€æŸ¥
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, CollapseCategories)
 class GRIDTACTICS_API USkillEffect : public UObject
@@ -23,54 +23,54 @@ class GRIDTACTICS_API USkillEffect : public UObject
 
 public:
     /**
-     * Ö´ĞĞĞ§¹û£¨ºËĞÄ½Ó¿Ú£©
-     * @param Instigator Ê©·¨Õß
-     * @param TargetGrid Ä¿±êÍø¸ñ×ø±ê
-     * @param AffectedActors ÊÜÓ°ÏìµÄ½ÇÉ«ÁĞ±í£¨ÓÉ¼¼ÄÜÏµÍ³¼ÆËã£©
-     * @return ÊÇ·ñÖ´ĞĞ³É¹¦
+     * æ‰§è¡Œæ•ˆæœï¼ˆæ ¸å¿ƒæ¥å£ï¼‰
+     * @param Instigator æ–½æ³•è€…
+     * @param TargetGrid ç›®æ ‡ç½‘æ ¼åæ ‡
+     * @param AffectedActors å—å½±å“çš„è§’è‰²åˆ—è¡¨ï¼ˆç”±æŠ€èƒ½ç³»ç»Ÿè®¡ç®—ï¼‰
+     * @return æ˜¯å¦æ‰§è¡ŒæˆåŠŸ
      */
     UFUNCTION(BlueprintNativeEvent, Category = "Skill Effect")
     bool Execute(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors);
     virtual bool Execute_Implementation(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors);
 
     /**
-     * ÑéÖ¤ÊÇ·ñ¿ÉÒÔÖ´ĞĞ
-     * @return ÊÇ·ñ¿ÉÒÔÖ´ĞĞ
+     * éªŒè¯æ˜¯å¦å¯ä»¥æ‰§è¡Œ
+     * @return æ˜¯å¦å¯ä»¥æ‰§è¡Œ
      */
     UFUNCTION(BlueprintNativeEvent, Category = "Skill Effect")
     bool CanExecute(AActor* Instigator, FIntPoint TargetGrid) const;
     virtual bool CanExecute_Implementation(AActor* Instigator, FIntPoint TargetGrid) const;
 
     // ========================================
-    // ÅäÖÃÊôĞÔ
+    // é…ç½®å±æ€§
     // ========================================
 
-    /** Ğ§¹ûÃû³Æ£¨ÓÃÓÚµ÷ÊÔ£© */
+    /** æ•ˆæœåç§°ï¼ˆç”¨äºè°ƒè¯•ï¼‰ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Info")
     FText EffectName = FText::FromString(TEXT("Unnamed Effect"));
 
-    /** Ö´ĞĞÑÓ³Ù£¨Ãë£©£¬0 = Á¢¼´Ö´ĞĞ */
+    /** æ‰§è¡Œå»¶è¿Ÿï¼ˆç§’ï¼‰ï¼Œ0 = ç«‹å³æ‰§è¡Œ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Timing", meta = (ClampMin = "0.0", ClampMax = "5.0"))
     float ExecutionDelay = 0.0f;
 
-    /** ÊÇ·ñ½öÔÚ·şÎñÆ÷Ö´ĞĞ£¨ÍøÂçÄ£Ê½ÏÂ£© */
+    /** æ˜¯å¦ä»…åœ¨æœåŠ¡å™¨æ‰§è¡Œï¼ˆç½‘ç»œæ¨¡å¼ä¸‹ï¼‰ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Network")
     bool bServerOnly = true;
 
 protected:
     // ========================================
-    // ¸¨Öúº¯Êı£¨¹©×ÓÀàÊ¹ÓÃ£©
+    // è¾…åŠ©å‡½æ•°ï¼ˆä¾›å­ç±»ä½¿ç”¨ï¼‰
     // ========================================
 
-    /** »ñÈ¡ GridManager */
+    /** è·å– GridManagerï¼ˆéœ€è¦ä¼ å…¥ Instigator ä»¥è·å– Worldï¼‰ */
     UFUNCTION(BlueprintPure, Category = "Skill Effect")
-    AGridManager* GetGridManager() const;
+    AGridManager* GetGridManager(AActor* WorldContextObject) const;
 
-    /** ¼ì²éÊÇ·ñÔÚ·şÎñÆ÷ÉÏÖ´ĞĞ */
+    /** æ£€æŸ¥æ˜¯å¦åœ¨æœåŠ¡å™¨ä¸Šæ‰§è¡Œ */
     UFUNCTION(BlueprintPure, Category = "Skill Effect")
     bool HasAuthority(AActor* Instigator) const;
 
-    /** »ñÈ¡½ÇÉ«µÄ AttributesComponent */
+    /** è·å–è§’è‰²çš„ AttributesComponent */
     UFUNCTION(BlueprintPure, Category = "Skill Effect")
     class UAttributesComponent* GetAttributesComponent(AActor* Actor) const;
 };

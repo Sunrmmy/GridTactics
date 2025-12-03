@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "SkillEffect_Damage.generated.h"
 
 /**
- * ÉËº¦Ğ§¹û - ¶ÔÄ¿±êÔì³ÉÉËº¦
+ * ä¼¤å®³æ•ˆæœ - å¯¹ç›®æ ‡é€ æˆä¼¤å®³
  */
 UCLASS(Blueprintable, EditInlineNew, meta = (DisplayName = "Damage Effect"))
 class GRIDTACTICS_API USkillEffect_Damage : public USkillEffect
@@ -20,18 +20,18 @@ public:
     virtual bool Execute_Implementation(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors) override;
 
     // ========================================
-    // ÅäÖÃÊôĞÔ
+    // é…ç½®å±æ€§
     // ========================================
 
-    /** »ù´¡ÉËº¦Öµ */
+    /** åŸºç¡€ä¼¤å®³å€¼ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage", meta = (ClampMin = "0.0"))
     float BaseDamage = 10.0f;
 
-    /** ÊÇ·ñ¶ÔÊ©·¨Õß×Ô¼ºÔì³ÉÉËº¦ */
+    /** æ˜¯å¦å¯¹æ–½æ³•è€…è‡ªå·±é€ æˆä¼¤å®³ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
     bool bDamageSelf = false;
 
-    /** ÉËº¦Ë¥¼õ£º¸ù¾İ¾àÀë¼õÉÙÉËº¦£¨0 = ÎŞË¥¼õ£¬1 = ±ßÔµÎŞÉËº¦£© */
+    /** ä¼¤å®³è¡°å‡ï¼šæ ¹æ®è·ç¦»å‡å°‘ä¼¤å®³ï¼ˆ0 = æ— è¡°å‡ï¼Œ1 = è¾¹ç¼˜æ— ä¼¤å®³ï¼‰ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage", meta = (ClampMin = "0.0", ClampMax = "1.0"))
     float DistanceFalloff = 0.0f;
 };

@@ -1,4 +1,4 @@
-#include "SkillEffect_Damage.h"
+ï»¿#include "SkillEffect_Damage.h"
 #include "GridTactics/AttributesComponent.h"
 #include "GridTactics/GridManager.h"
 
@@ -19,28 +19,28 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
 
     for (AActor* Target : AffectedActors)
     {
-        // Ìø¹ýÊ©·¨Õß×Ô¼º
+        // è·³è¿‡æ–½æ³•è€…è‡ªå·±
         if (Target == Instigator && !bDamageSelf)
         {
             continue;
         }
 
-        // »ñÈ¡Ä¿±êµÄÊôÐÔ×é¼þ
+        // èŽ·å–ç›®æ ‡çš„å±žæ€§ç»„ä»¶
         UAttributesComponent* TargetAttrs = GetAttributesComponent(Target);
         if (!TargetAttrs)
         {
             continue;
         }
 
-        // ¼ÆËãÊµ¼ÊÉËº¦£¨¿ÉÑ¡£º¾àÀëË¥¼õ£©
+        // è®¡ç®—å®žé™…ä¼¤å®³ï¼ˆå¯é€‰ï¼šè·ç¦»è¡°å‡ï¼‰
         float FinalDamage = BaseDamage;
 
         //if (DistanceFalloff > 0.0f)
         //{
-        //    // ¸ù¾Ý TargetGrid ºÍÄ¿±êÎ»ÖÃ¼ÆËã¾àÀëË¥¼õ
+        //    // æ ¹æ® TargetGrid å’Œç›®æ ‡ä½ç½®è®¡ç®—è·ç¦»è¡°å‡
         //}
 
-        // Ó¦ÓÃÉËº¦
+        // åº”ç”¨ä¼¤å®³
         TargetAttrs->ApplyDamage(FinalDamage);
         DamagedCount++;
 
