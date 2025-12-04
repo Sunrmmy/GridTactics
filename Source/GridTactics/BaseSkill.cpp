@@ -181,8 +181,12 @@ FIntPoint UBaseSkill::GetTargetGrid() const
         return GridMgr->GetActorCurrentGrid(OwnerCharacter);
 
     case ESkillTargetType::Direction:
+        // ✅ 修复：方向性技能的目标格子是玩家自己的位置
+        // （效果范围会根据角色朝向从玩家位置向外延伸）
+        return GridMgr->GetActorCurrentGrid(OwnerCharacter);
+
     case ESkillTargetType::TargetGrid:
-        // 从 SkillComponent 获取瞄准的目标格子
+        // 精确目标技能（如传送、AOE）：目标是鼠标所在的格子
         return OwningComponent->GetAimingTargetGrid();
 
     case ESkillTargetType::TargetEnemy:
@@ -214,8 +218,17 @@ TArray<AActor*> UBaseSkill::GetAffectedActors(FIntPoint TargetGrid) const
     
     if (auto Hero = Cast<AHeroCharacter>(OwnerCharacter))
     {
-        // 使用 HeroCharacter 的转换函数（考虑朝向）
-        WorldGrids = Hero->GetSkillRangeInWorldFromCenter(PatternToUse, TargetGrid);
+        // ✅ 修复：根据技能类型决定如何计算效果范围
+        if (SkillData->TargetType == ESkillTargetType::Direction)
+        {
+            // 方向性技能：使用 GetSkillRangeInWorld（以玩家为中心，考虑朝向）
+            WorldGrids = Hero->GetSkillRangeInWorld(PatternToUse);
+        }
+        else
+        {
+            // 其他技能（如 TargetGrid）：以目标格子为中心
+            WorldGrids = Hero->GetSkillRangeInWorldFromCenter(PatternToUse, TargetGrid);
+        }
     }
     else
     {
@@ -226,33 +239,104 @@ TArray<AActor*> UBaseSkill::GetAffectedActors(FIntPoint TargetGrid) const
         }
     }
 
-    // 检测每个格子上的角色
-    TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-    ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+    //// 检测每个格子上的角色
+    //TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+    //ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 
-    TArray<AActor*> ActorsToIgnore;
-    ActorsToIgnore.Add(OwnerCharacter);
+    //TArray<AActor*> ActorsToIgnore;
+    //// ActorsToIgnore.Add(OwnerCharacter);
 
+    //for (const FIntPoint& Grid : WorldGrids)
+    //{
+    //    FVector WorldLocation = MovementComp->GridToWorld(Grid.X, Grid.Y);
+    //    
+    //    // 修复：将检测高度提高到角色可能存在的位置
+    //    WorldLocation.Z = OwnerCharacter->GetActorLocation().Z;
+    //    
+    //    TArray<AActor*> OverlappedActors;
+
+    //    UKismetSystemLibrary::SphereOverlapActors(
+    //        GetWorld(),
+    //        WorldLocation,
+    //        50.0f,
+    //        ObjectTypes,
+    //        nullptr,
+    //        ActorsToIgnore,
+    //        OverlappedActors
+    //    );
+
+    //    for (AActor* Actor : OverlappedActors)
+    //    {
+    //        AffectedActors.AddUnique(Actor);
+    //    }
+    //}
+
+    //UE_LOG(LogTemp, Log, TEXT("GetAffectedActors: Found %d actors in %d grids"), 
+    //    AffectedActors.Num(), WorldGrids.Num());
+
+
+
+    // 备选方案：遍历所有角色，检查其网格位置
+    TArray<AActor*> AllCharacters;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacter::StaticClass(), AllCharacters);
+
+    UE_LOG(LogTemp, Warning, TEXT("=== GetAffectedActors (Grid-Based) ==="));
+    UE_LOG(LogTemp, Warning, TEXT("TargetType: %d, TargetGrid: %s"), 
+        static_cast<int32>(SkillData->TargetType), *TargetGrid.ToString());
+    UE_LOG(LogTemp, Warning, TEXT("WorldGrids: %d, AllCharacters: %d"), WorldGrids.Num(), AllCharacters.Num());
+
+    for (AActor* Actor : AllCharacters)
+    {
+        if (!Actor) continue;
+
+        // 获取角色所在的网格
+        int32 ActorGridX, ActorGridY;
+        MovementComp->WorldToGrid(Actor->GetActorLocation(), ActorGridX, ActorGridY);
+        FIntPoint ActorGrid(ActorGridX, ActorGridY);
+
+        UE_LOG(LogTemp, Log, TEXT("  Character %s at Grid %s"),
+            *Actor->GetName(), *ActorGrid.ToString());
+
+        // 检查是否在目标网格列表中
+        if (WorldGrids.Contains(ActorGrid))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("    -> MATCHED! Adding to AffectedActors"));
+            AffectedActors.AddUnique(Actor);
+
+            // 可视化：绘制命中的角色（红色）
+            DrawDebugSphere(
+                GetWorld(),
+                Actor->GetActorLocation(),
+                50.0f,
+                12,
+                FColor::Red,
+                false,
+                3.0f,
+                0,
+                3.0f
+            );
+        }
+    }
+
+    // 可视化：绘制所有检测格子（绿色）
     for (const FIntPoint& Grid : WorldGrids)
     {
         FVector WorldLocation = MovementComp->GridToWorld(Grid.X, Grid.Y);
-        TArray<AActor*> OverlappedActors;
+        WorldLocation.Z = OwnerCharacter->GetActorLocation().Z;
 
-        UKismetSystemLibrary::SphereOverlapActors(
+        DrawDebugBox(
             GetWorld(),
             WorldLocation,
-            50.0f, // 半径50cm，确保能覆盖格子中心
-            ObjectTypes,
-            nullptr, // 不按特定类过滤，也可以指定为敌人基类
-            ActorsToIgnore,
-            OverlappedActors
+            FVector(50.0f, 50.0f, 100.0f),
+            FColor::Green,
+            false,
+            3.0f,
+            0,
+            2.0f
         );
-
-        for (AActor* Actor : OverlappedActors)
-        {
-            AffectedActors.AddUnique(Actor);
-        }
     }
+
+    UE_LOG(LogTemp, Warning, TEXT("=== Total Found: %d actors ==="), AffectedActors.Num());
 
     return AffectedActors;
 }

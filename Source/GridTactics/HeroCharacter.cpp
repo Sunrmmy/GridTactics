@@ -73,12 +73,13 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	{
 		// 绑定IA_Move到OnMove函数
 		EnhancedInput->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroCharacter::OnMove);
-		EnhancedInput->BindAction(IA_Skill_1, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 0);
-		EnhancedInput->BindAction(IA_Skill_2, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 1);
+		EnhancedInput->BindAction(IA_Skill_0, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 0);
+		EnhancedInput->BindAction(IA_Skill_1, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 1);
+		EnhancedInput->BindAction(IA_Skill_2, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 2);
+		EnhancedInput->BindAction(IA_Skill_3, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 3);
+		EnhancedInput->BindAction(IA_Skill_4, ETriggerEvent::Started, this, &AHeroCharacter::OnSkillButtonPressed, 4);
 		// 绑定其他技能键 ...
 
-		// 绑定取消施法
-		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
 		// 绑定鼠标点击用于确认施法
 		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
 	}

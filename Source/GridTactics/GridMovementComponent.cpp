@@ -178,6 +178,12 @@ void UGridMovementComponent::ExecuteDisplacementPath(const TArray<FIntPoint>& Pa
         return;
     }
 
+    // 修复：缓存当前 Z 轴高度
+    if (OwnerCharacter)
+    {
+        DisplacementInitialHeight = OwnerCharacter->GetActorLocation().Z;
+    }
+
     // 转换为世界坐标路径
     DisplacementWorldPath.Empty();
     for (const FIntPoint& Grid : Path)
@@ -185,6 +191,11 @@ void UGridMovementComponent::ExecuteDisplacementPath(const TArray<FIntPoint>& Pa
         FVector WorldPos = GridToWorld(Grid.X, Grid.Y);
         DisplacementWorldPath.Add(WorldPos);
     }
+
+    // 修复：重置高度参数为 0（Dash 不需要改变高度）
+    DisplacementStartHeight = 0.0f;
+    DisplacementEndHeight = 0.0f;
+    DisplacementArcHeight = 0.0f;
 
     // 初始化位移状态
     CurrentState = EMovementState::DisplacementMoving;
@@ -199,12 +210,12 @@ void UGridMovementComponent::ExecuteDisplacementPath(const TArray<FIntPoint>& Pa
         FVector Direction = (EndPos - StartPos).GetSafeNormal();
         if (!Direction.IsNearlyZero())
         {
-            TargetRotation = Direction.Rotation();
+            TargetRotation = SnapRotationToFourDirections(Direction.Rotation());
         }
     }
 
-    UE_LOG(LogTemp, Log, TEXT("ExecuteDisplacementPath: %d waypoints over %.2fs"),
-        DisplacementWorldPath.Num(), Duration);
+    UE_LOG(LogTemp, Log, TEXT("ExecuteDisplacementPath: %d waypoints over %.2fs, Keeping Z at %.1f"),
+        DisplacementWorldPath.Num(), Duration, DisplacementInitialHeight);
 }
 
 void UGridMovementComponent::StopDisplacement()

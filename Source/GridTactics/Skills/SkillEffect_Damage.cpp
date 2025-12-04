@@ -15,13 +15,16 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
         return false;
     }
 
+    UE_LOG(LogTemp, Log, TEXT("SkillEffect_Damage: Processing %d affected actors"), AffectedActors.Num());
+
     int32 DamagedCount = 0;
 
     for (AActor* Target : AffectedActors)
     {
-        // 跳过施法者自己
+        // 跳过施法者自己（除非允许自伤）
         if (Target == Instigator && !bDamageSelf)
         {
+            UE_LOG(LogTemp, Verbose, TEXT("  Skipping self: %s"), *Target->GetName());
             continue;
         }
 
@@ -47,5 +50,12 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
         UE_LOG(LogTemp, Log, TEXT("SkillEffect_Damage: Dealt %.1f damage to %s"), FinalDamage, *Target->GetName());
     }
 
-    return DamagedCount > 0;
+    // 修复：即使没有造成伤害，也返回 true（技能本身执行成功）
+    // 只有在技术性错误时才返回 false
+    if (AffectedActors.Num() == 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillEffect_Damage: No targets in range"));
+    }
+
+    return true;  // 技能执行成功，即使没有命中目标
 }
