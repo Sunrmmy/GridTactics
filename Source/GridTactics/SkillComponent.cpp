@@ -3,10 +3,12 @@
 
 #include "SkillComponent.h"
 #include "SkillDataAsset.h"
+#include "Skills/SkillEffect.h"
 #include "GridManager.h"
 #include "BaseSkill.h"
 #include "HeroCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values for this component's properties
 USkillComponent::USkillComponent()
@@ -154,25 +156,41 @@ void USkillComponent::TryConfirmSkill()
         OwnerCharacter->HideRangeIndicators();
     }
 
-    // 关键修改：根据 CastDelay 决定是否延迟执行
-    if (SkillData->CastDelay > 0.0f)
+    // ✅ 立即执行技能（每个 Effect 自己控制延迟）
+    SkillEntry.SkillInstance->Activate();
+
+    // ✅ 设置冷却
+    SkillEntry.CooldownRemaining = SkillData->Cooldown;
+
+    // ✅ 计算最大 Effect 延迟，作为 Casting 状态持续时间
+    float MaxEffectDelay = 0.0f;
+    for (USkillEffect* Effect : SkillData->SkillEffects)
     {
-        // 有前摇：延迟执行技能
+        if (Effect)
+        {
+            MaxEffectDelay = FMath::Max(MaxEffectDelay, Effect->ExecutionDelay);
+        }
+    }
+
+    // 加上 TimeCost
+    float TotalCastingTime = MaxEffectDelay + SkillData->TimeCost;
+
+    if (TotalCastingTime > 0.0f)
+    {
         GetWorld()->GetTimerManager().SetTimer(
-            CastDelayTimerHandle,
+            TimeCostTimerHandle,
             this,
-            &USkillComponent::OnCastDelayFinished,
-            SkillData->CastDelay,
+            &USkillComponent::FinishCasting,
+            TotalCastingTime,
             false
         );
 
-        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Casting skill %d with %.2fs delay"),
-            CurrentCastingSkillIndex, SkillData->CastDelay);
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Casting state will last %.2fs (MaxDelay: %.2f + TimeCost: %.2f)"),
+            TotalCastingTime, MaxEffectDelay, SkillData->TimeCost);
     }
     else
     {
-        // 无前摇：立即执行
-        OnCastDelayFinished();
+        FinishCasting();
     }
 }
 
@@ -227,28 +245,6 @@ void USkillComponent::OnCastDelayFinished()
     }
 }
 
-// 获取施法进度（用于UI显示）
-float USkillComponent::GetCastingProgress() const
-{
-    if (CurrentState != ESkillState::Casting)
-    {
-        return 0.0f;
-    }
-
-    if (!SkillSlots.IsValidIndex(CurrentCastingSkillIndex))
-    {
-        return 0.0f;
-    }
-
-    const USkillDataAsset* SkillData = SkillSlots[CurrentCastingSkillIndex].SkillData;
-    if (!SkillData || SkillData->CastDelay <= 0.0f)
-    {
-        return 1.0f;
-    }
-
-    float Remaining = GetWorld()->GetTimerManager().GetTimerRemaining(CastDelayTimerHandle);
-    return 1.0f - (Remaining / SkillData->CastDelay);
-}
 
 void USkillComponent::FinishCasting()
 {

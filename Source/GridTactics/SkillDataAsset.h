@@ -7,17 +7,17 @@
 #include "GridTacticsPlayerState.h"
 #include "SkillDataAsset.generated.h"
 
-// ¼¼ÄÜÄ¿±êÀàĞÍ
+// æŠ€èƒ½ç›®æ ‡ç±»å‹
 UENUM(BlueprintType)
 enum class ESkillTargetType : uint8
 {
-	Self            UMETA(DisplayName = "Self"),           // ×ÔÉí£¨ÎŞĞèÑ¡Ôñ£©
-	Direction       UMETA(DisplayName = "Direction"),      // ·½ÏòĞÔ£¨Èç³å·æ£©
-	TargetGrid      UMETA(DisplayName = "TargetGrid"),     // ¾«È·Íø¸ñ£¨Èç´«ËÍ¡¢AOE£©
-	TargetEnemy     UMETA(DisplayName = "TargetEnemy")     // Ö¸¶¨µĞÈË£¨×Ô¶¯Ñ°µĞ£©
+	Self            UMETA(DisplayName = "Self"),           // è‡ªèº«ï¼ˆæ— éœ€é€‰æ‹©ï¼‰
+	Direction       UMETA(DisplayName = "Direction"),      // æ–¹å‘æ€§ï¼ˆå¦‚å†²é”‹ï¼‰
+	TargetGrid      UMETA(DisplayName = "TargetGrid"),     // ç²¾ç¡®ç½‘æ ¼ï¼ˆå¦‚ä¼ é€ã€AOEï¼‰
+	TargetEnemy     UMETA(DisplayName = "TargetEnemy")     // æŒ‡å®šæ•Œäººï¼ˆè‡ªåŠ¨å¯»æ•Œï¼‰
 };
 
-//// ¼¼ÄÜĞ§¹ûÀàĞÍ
+//// æŠ€èƒ½æ•ˆæœç±»å‹
 //UENUM(BlueprintType)
 //enum class ESkillEffectType : uint8
 //{
@@ -25,7 +25,7 @@ enum class ESkillTargetType : uint8
 //	Heal            UMETA(DisplayName = "Heal"),
 //	Buff            UMETA(DisplayName = "Buff"),
 //	Debuff          UMETA(DisplayName = "Debuff"),
-//	Displacement    UMETA(DisplayName = "Displacement")    // Î»ÒÆ
+//	Displacement    UMETA(DisplayName = "Displacement")    // ä½ç§»
 //};
 
 UCLASS(BlueprintType)
@@ -34,7 +34,7 @@ class GRIDTACTICS_API USkillDataAsset : public UDataAsset
 	GENERATED_BODY()
 	
 public:
-	// --- ¼¼ÄÜ»ù´¡ĞÅÏ¢ ---
+	// --- æŠ€èƒ½åŸºç¡€ä¿¡æ¯ ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Info")
 	FText SkillName;
 
@@ -44,32 +44,32 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
 	TSubclassOf<class UBaseSkill> SkillLogicClass;
 
-	// --- ·¶Î§¶¨Òå ---
+	// --- èŒƒå›´å®šä¹‰ ---
 
 	/**
-	 * Ê©·¨·¶Î§Ä£Ê½£¨Ïà¶ÔÓÚ½ÇÉ«µ±Ç°Î»ÖÃ£©
-	 * ÓÃÓÚ£ºÏÔÊ¾¿ÉÊ©·¨µÄ¸ñ×Ó¡¢ÑéÖ¤Êó±êµã»÷ÊÇ·ñÔÚ·¶Î§ÄÚ
+	 * æ–½æ³•èŒƒå›´æ¨¡å¼ï¼ˆç›¸å¯¹äºè§’è‰²å½“å‰ä½ç½®ï¼‰
+	 * ç”¨äºï¼šæ˜¾ç¤ºå¯æ–½æ³•çš„æ ¼å­ã€éªŒè¯é¼ æ ‡ç‚¹å‡»æ˜¯å¦åœ¨èŒƒå›´å†…
 	 */
-	// ¼¼ÄÜµÄ·¶Î§Ä£Ê½£¬»ùÓÚ½ÇÉ«ÃæÏòÕıÇ°·½(X+)	ÀıÈç: {(1,0), (2,0), (3,0), (3,1), (3,-1)} ´ú±í½ÇÉ«³¯ÏòµÄÒ»¸öTĞÎ·¶Î§
+	// æŠ€èƒ½çš„èŒƒå›´æ¨¡å¼ï¼ŒåŸºäºè§’è‰²é¢å‘æ­£å‰æ–¹(X+)	ä¾‹å¦‚: {(1,0), (2,0), (3,0), (3,1), (3,-1)} ä»£è¡¨è§’è‰²æœå‘çš„ä¸€ä¸ªTå½¢èŒƒå›´
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Range")
 	TArray<FIntPoint> RangePattern;
 	/**
-	 * Ğ§¹û·¶Î§Ä£Ê½£¨Ïà¶ÔÓÚÄ¿±êµã£©
-	 * ÓÃÓÚ£ºÏÔÊ¾¼¼ÄÜĞ§¹û·¶Î§¡¢¼ÆËãÊÜÓ°ÏìµÄµĞÈË
+	 * æ•ˆæœèŒƒå›´æ¨¡å¼ï¼ˆç›¸å¯¹äºç›®æ ‡ç‚¹ï¼‰
+	 * ç”¨äºï¼šæ˜¾ç¤ºæŠ€èƒ½æ•ˆæœèŒƒå›´ã€è®¡ç®—å—å½±å“çš„æ•Œäºº
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Range")
 	TArray<FIntPoint> EffectPattern;
 
-	// --- ¼¼ÄÜÀàĞÍ ---
+	// --- æŠ€èƒ½ç±»å‹ ---
 
-	// ¼¼ÄÜÄ¿±êÀàĞÍ
+	// æŠ€èƒ½ç›®æ ‡ç±»å‹
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Type")
 	ESkillTargetType TargetType = ESkillTargetType::Direction;
-	//// ¼¼ÄÜĞ§¹ûÀàĞÍ
+	//// æŠ€èƒ½æ•ˆæœç±»å‹
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Type")
 	//ESkillEffectType EffectType = ESkillEffectType::Damage;
 
-	// --- ¼¼ÄÜÏûºÄ ---
+	// --- æŠ€èƒ½æ¶ˆè€— ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill stats")
 	float Cooldown = 5.0f;
@@ -83,67 +83,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Stats")
 	float TimeCost = 0.0f;
 
-	// --- Ê©·¨ÑÓ³Ù ---
+	// --- æ–½æ³•å»¶è¿Ÿ ---
 
-	// Ê©·¨ÑÓ³Ù£¨Ãë£©£¬0 = Ë²·¢
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Advanced", meta = (ClampMin = "0.0", ClampMax = "3.0"))
-	float CastDelay = 0.0f;
+	//// æ–½æ³•å»¶è¿Ÿï¼ˆç§’ï¼‰ï¼Œ0 = ç¬å‘
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Advanced", meta = (ClampMin = "0.0", ClampMax = "3.0"))
+	//float CastDelay = 0.0f;
 
-	//// --- ¼¼ÄÜĞ§¹û ---
-
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects")
-	//float Damage = 0.0f;
-
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "Ê©¼Ó¸øÄ¿±êµÄĞ§¹û"))
-	//TArray<FAttributeModifier> TargetModifiers;
-
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill Effects", meta = (Tooltip = "Ê©¼Ó¸ø×Ô¼ºµÄĞ§¹û"))
-	//TArray<FAttributeModifier> SelfModifiers;
-
-	//// --- ¼¼ÄÜµÄÎ»ÒÆÊôĞÔ ---
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Movement", meta = (ClampMin = "0"))
-	//int32 MovementDistance = 0;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic")
-	//bool bRequiresTargetGrid = false;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Logic", meta = (EditCondition = "bRequiresTargetGrid", ClampMin = "0"))
-	//int32 MaxMovementRange = 5;
-
-	//// --- ³å·æ×¨ÓÃÊôĞÔ ---
-	//// 
-	//// ³å´Ì¾àÀë£¨Íø¸ñÊı£©
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "10"))
-	//int32 DashDistance = 3;
-
-	//// »÷ÍË¾àÀë£¨Íø¸ñÊı£©
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0", ClampMax = "5"))
-	//int32 KnockbackDistance = 2;
-
-	//// ÊÇ·ñÔÚÅö×²ºóÍ£Ö¹£¨false=´©Í¸£©
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
-	//bool bStopOnCollision = true;
-
-	//// ÊÇ·ñÆôÓÃÁ´Ê½»÷ÍË
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash")
-	//bool bEnableChainKnockback = false;
-
-	//// ³å´Ì³ÖĞøÊ±¼ä£¨Ãë£©
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0.1", ClampMax = "2.0"))
-	//float ChargeDuration = 0.3f;
-
-	//// ¶Ô±»×²»÷µĞÈËÔì³ÉµÄ¶îÍâÉËº¦£¨µş¼Óµ½ Damage£©
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Dash", meta = (ClampMin = "0"))
-	//float CollisionDamage = 0.0f;
 
 	// ========================================
-	// ¿É×éºÏµÄ Effect ÁĞ±í
+	// å¯ç»„åˆçš„ Effect åˆ—è¡¨
 	// ========================================
 
 	/**
-	 * ¼¼ÄÜĞ§¹ûÁĞ±í£¨ÔÚ±à¼­Æ÷ÖĞÊµÀı»¯²¢ÅäÖÃ£©
-	 * °´Ë³ĞòÖ´ĞĞ£¬Èç¹ûÄ³¸ö Effect ·µ»Ø false ÔòÖĞ¶ÏºóĞøÖ´ĞĞ
+	 * æŠ€èƒ½æ•ˆæœåˆ—è¡¨ï¼ˆåœ¨ç¼–è¾‘å™¨ä¸­å®ä¾‹åŒ–å¹¶é…ç½®ï¼‰
+	 * æŒ‰é¡ºåºæ‰§è¡Œï¼Œå¦‚æœæŸä¸ª Effect è¿”å› false åˆ™ä¸­æ–­åç»­æ‰§è¡Œ
 	 */
 	UPROPERTY(EditAnywhere, Instanced, Category = "Skill Effects", meta = (DisplayName = "Skill Effects (Required)"))
 	TArray<TObjectPtr<class USkillEffect>> SkillEffects;

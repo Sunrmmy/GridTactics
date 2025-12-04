@@ -21,10 +21,16 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
 
     for (AActor* Target : AffectedActors)
     {
+        // ✅ 添加有效性检查
+        if (!IsValid(Target))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Skipping invalid/destroyed actor"));
+            continue;
+        }
+
         // 跳过施法者自己（除非允许自伤）
         if (Target == Instigator && !bDamageSelf)
         {
-            UE_LOG(LogTemp, Verbose, TEXT("  Skipping self: %s"), *Target->GetName());
             continue;
         }
 

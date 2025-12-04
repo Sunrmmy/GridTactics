@@ -83,9 +83,9 @@ public:
 	// 新增：设置瞄准目标格子（在 Tick 或鼠标移动时更新）
 	void SetAimingTargetGrid(FIntPoint TargetGrid) { AimingTargetGrid = TargetGrid; }
 
-	// 新增：获取当前施法进度（用于 UI 显示）
-	UFUNCTION(BlueprintPure, Category = "Skills")
-	float GetCastingProgress() const;
+	//// 新增：获取当前施法进度（用于 UI 显示）
+	//UFUNCTION(BlueprintPure, Category = "Skills")
+	//float GetCastingProgress() const;
 
 protected:
 	// Called when the game starts

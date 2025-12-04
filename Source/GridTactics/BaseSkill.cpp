@@ -91,69 +91,93 @@ bool UBaseSkill::ExecuteSkillEffects()
         return false;
     }
 
-    // 2. 获取受影响的角色
+    // 2. 获取受影响的角色（立即计算，供所有 Effect 使用）
     TArray<AActor*> AffectedActors = GetAffectedActors(TargetGrid);
 
-    UE_LOG(LogTemp, Log, TEXT("  Executing %d effects on %d actors at grid %s"),
+    UE_LOG(LogTemp, Log, TEXT("ExecuteSkillEffects: %d effects on %d actors at grid %s"),
         SkillData->SkillEffects.Num(),
         AffectedActors.Num(),
         *TargetGrid.ToString());
 
-    // 新增：先验证所有关键 Effect 是否可以执行
+    // 3. 先验证所有 Effect 是否可以执行（在任何延迟之前）
     for (USkillEffect* Effect : SkillData->SkillEffects)
     {
-        if (!Effect)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("  Null Effect in SkillEffects array"));
-            continue;
-        }
+        if (!Effect) continue;
 
-        // 检查是否可以执行
         if (!Effect->CanExecute(OwnerCharacter, TargetGrid))
         {
-            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' CanExecute failed, ABORTING skill execution"),
+            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' CanExecute failed, ABORTING"),
                 *Effect->EffectName.ToString());
-
-            // 关键修改：任何 Effect 失败，整个技能中断
             return false;
         }
     }
-    // 3. 按顺序执行所有 Effect
-    bool bAnySucceeded = false;
+
+    // 4. 按各自的 ExecutionDelay 执行每个 Effect
+    UWorld* World = GetWorld();
+    if (!World) return false;
 
     for (USkillEffect* Effect : SkillData->SkillEffects)
     {
-        if (!Effect)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("  Null Effect in SkillEffects array"));
-            continue;
-        }
+        if (!Effect) continue;
 
-        // 检查是否可以执行
-        if (!Effect->CanExecute(OwnerCharacter, TargetGrid))
+        // 在延迟执行时使用弱引用
+        if (Effect->ExecutionDelay > 0.0f)
         {
-            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' CanExecute failed, skipping"),
-                *Effect->EffectName.ToString());
-            continue;
-        }
+            FTimerHandle TimerHandle;
+            FTimerDelegate TimerDelegate;
+            
+            // 使用弱引用捕获 Actor 列表
+            TArray<TWeakObjectPtr<AActor>> WeakAffectedActors;
+            for (AActor* Actor : AffectedActors)
+            {
+                WeakAffectedActors.Add(Actor);
+            }
+            
+            TWeakObjectPtr<AActor> WeakOwner(OwnerCharacter);
+            
+            TimerDelegate.BindLambda([Effect, WeakOwner, TargetGrid, WeakAffectedActors]()
+            {
+                // 检查施法者是否仍然有效
+                AActor* Owner = WeakOwner.Get();
+                if (!Effect || !Owner)
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("Effect execution cancelled - owner destroyed"));
+                    return;
+                }
+                
+                // 过滤出仍然有效的目标
+                TArray<AActor*> ValidActors;
+                for (const TWeakObjectPtr<AActor>& WeakActor : WeakAffectedActors)
+                {
+                    if (AActor* Actor = WeakActor.Get())
+                    {
+                        ValidActors.Add(Actor);
+                    }
+                }
+                
+                Effect->Execute(Owner, TargetGrid, ValidActors);
+                
+                UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed after delay with %d/%d valid targets"),
+                    *Effect->EffectName.ToString(), 
+                    ValidActors.Num(), 
+                    WeakAffectedActors.Num());
+            });
 
-        // 执行 Effect
-        bool bSuccess = Effect->Execute(OwnerCharacter, TargetGrid, AffectedActors);
+            World->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, Effect->ExecutionDelay, false);
 
-        if (bSuccess)
-        {
-            UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed successfully"),
-                *Effect->EffectName.ToString());
-            bAnySucceeded = true;
+            UE_LOG(LogTemp, Log, TEXT("  Effect '%s' scheduled with %.2fs delay"),
+                *Effect->EffectName.ToString(), Effect->ExecutionDelay);
         }
         else
         {
-            UE_LOG(LogTemp, Warning, TEXT("  Effect '%s' execution failed"),
+            // 立即执行
+            Effect->Execute(OwnerCharacter, TargetGrid, AffectedActors);
+            UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed immediately"),
                 *Effect->EffectName.ToString());
         }
     }
 
-    return bAnySucceeded;
+    return true;
 }
 
 FIntPoint UBaseSkill::GetTargetGrid() const
@@ -181,7 +205,7 @@ FIntPoint UBaseSkill::GetTargetGrid() const
         return GridMgr->GetActorCurrentGrid(OwnerCharacter);
 
     case ESkillTargetType::Direction:
-        // ✅ 修复：方向性技能的目标格子是玩家自己的位置
+        // 修复：方向性技能的目标格子是玩家自己的位置
         // （效果范围会根据角色朝向从玩家位置向外延伸）
         return GridMgr->GetActorCurrentGrid(OwnerCharacter);
 
@@ -218,7 +242,7 @@ TArray<AActor*> UBaseSkill::GetAffectedActors(FIntPoint TargetGrid) const
     
     if (auto Hero = Cast<AHeroCharacter>(OwnerCharacter))
     {
-        // ✅ 修复：根据技能类型决定如何计算效果范围
+        // 修复：根据技能类型决定如何计算效果范围
         if (SkillData->TargetType == ESkillTargetType::Direction)
         {
             // 方向性技能：使用 GetSkillRangeInWorld（以玩家为中心，考虑朝向）
