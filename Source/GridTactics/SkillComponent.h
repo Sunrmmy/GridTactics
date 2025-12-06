@@ -76,16 +76,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	int32 GetAimingSkillIndex() const { return AimingSkillIndex; }
 
-	// 新增：获取当前瞄准的目标格子
+	// 获取当前瞄准的目标格子
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	FIntPoint GetAimingTargetGrid() const { return AimingTargetGrid; }
 
-	// 新增：设置瞄准目标格子（在 Tick 或鼠标移动时更新）
+	// 设置瞄准目标格子（在 Tick 或鼠标移动时更新）
 	void SetAimingTargetGrid(FIntPoint TargetGrid) { AimingTargetGrid = TargetGrid; }
 
-	//// 新增：获取当前施法进度（用于 UI 显示）
-	//UFUNCTION(BlueprintPure, Category = "Skills")
-	//float GetCastingProgress() const;
+	/** 新增：运行时添加技能 */
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	bool AddSkill(USkillDataAsset* NewSkillData);
+
+	/** 新增：替换技能 */
+	UFUNCTION(BlueprintCallable, Category = "Skills")
+	bool ReplaceSkill(int32 SlotIndex, USkillDataAsset* NewSkillData);
+
+	/** 新增：获取当前技能数量 */
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	int32 GetSkillCount() const { return SkillSlots.Num(); }
+
+	/** 新增：检查技能是否已满 */
+	UFUNCTION(BlueprintPure, Category = "Skills")
+	bool IsSkillSlotsFull() const { return SkillSlots.Num() >= 5; }
 
 protected:
 	// Called when the game starts

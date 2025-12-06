@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 
 class UNiagaraSystem;
 class USoundCue;
+class UNiagaraComponent;
 
 /**
  * 视觉/音效效果 - 用于播放粒子特效和音效
@@ -24,7 +25,15 @@ enum class EVFXSpawnLocation : uint8
     AffectedActors  UMETA(DisplayName = "All Affected Actors"),
     CasterToTarget  UMETA(DisplayName = "Caster To Target")
 };
-
+/**
+ * 弹道目标模式
+ */
+UENUM(BlueprintType)
+enum class EProjectileTargetMode : uint8
+{
+    ToTargetGrid    UMETA(DisplayName = "To Target Grid (使用技能目标格子)"),
+    ToDirection     UMETA(DisplayName = "To Direction (沿角色朝向飞行)")
+};
 UCLASS(Blueprintable, EditInlineNew, meta = (DisplayName = "VFX/Sound Effect"))
 class GRIDTACTICS_API USkillEffect_VFX : public USkillEffect
 {
@@ -96,7 +105,25 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Timing", meta = (ClampMin = "0.0", ClampMax = "5.0"))
     float PlayDelay = 0.0f;
 
-protected:
+    // 新增：是否启用弹道移动
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Movement")
+    bool bEnableProjectileMovement = false;
+
+    /** 新增：弹道类型 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Movement", meta = (EditCondition = "bEnableProjectileMovement"))
+    EProjectileTargetMode ProjectileTargetMode = EProjectileTargetMode::ToDirection;
+
+    /** 新增：飞行距离（网格数，仅在 ToDirection 模式使用） */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Movement", meta = (EditCondition = "bEnableProjectileMovement && ProjectileTargetMode == EProjectileTargetMode::ToDirection", ClampMin = "1", ClampMax = "20"))
+    int32 ProjectileGridDistance = 5;
+
+    // 新增：弹道速度
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Movement", meta = (EditCondition = "bEnableProjectileMovement"))
+    float ProjectileSpeed = 1000.0f;
+
+    // 新增：弹道弧度（0 = 直线，1 = 高抛物线）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Movement", meta = (EditCondition = "bEnableProjectileMovement", ClampMin = "0.0", ClampMax = "1.0"))
+    float ProjectileArc = 0.3f;
 
 protected:
     /** 执行 VFX（内部调用） */
@@ -110,4 +137,23 @@ protected:
 
     /** 获取生成位置列表 */
     TArray<FVector> GetSpawnLocations(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors, EVFXSpawnLocation SpawnType) const;
+
+    /** 新增：计算弹道目标位置 */
+    FVector CalculateProjectileEndLocation(AActor* Instigator, FIntPoint TargetGrid) const;
+
+    // 新增：更新弹道位置
+    UFUNCTION()
+    void UpdateProjectileMovement(float DeltaTime);
+
+    /** 缓存的 Timer Handle */
+    FTimerHandle ProjectileTimerHandle;
+
+    // 缓存生成的 Niagara Component
+    UPROPERTY()
+    TObjectPtr<UNiagaraComponent> ActiveNiagaraComponent;
+
+    FVector ProjectileStartLocation;
+    FVector ProjectileEndLocation;
+    float ProjectileElapsedTime = 0.0f;
+    float ProjectileDuration = 0.0f;
 };

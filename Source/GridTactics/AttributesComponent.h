@@ -1,10 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "GridTacticsPlayerState.h"		// ÒıÓÃ EModifierType¡¢FAttributeModifier½á¹¹Ìå
+#include "GridTacticsPlayerState.h"		// å¼•ç”¨ EModifierTypeã€FAttributeModifierç»“æ„ä½“
 #include "AttributesComponent.generated.h"
 
 
@@ -19,7 +19,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	// ÓÉËùÊôActorµÄTickµ÷ÓÃ
+	// ç”±æ‰€å±Actorçš„Tickè°ƒç”¨
 	void UpdateAttributes(float DeltaTime);
 
 	// Modifier Management
@@ -29,7 +29,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void RemoveAttributeModifier(const FGuid& ModifierID);
 
-	// »ñÈ¡ÊôĞÔAttributes
+	// è·å–å±æ€§Attributes
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	float GetHP() const { return HP; }
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
@@ -68,7 +68,11 @@ public:
 
 	float GetModifiedAttributeValue(EAttributeType Attribute, float BaseValue) const;
 
-
+	// æ–°å¢ï¼šæ­»äº¡äº‹ä»¶å§”æ‰˜
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterDied, AActor*, Character);
+	
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnCharacterDied OnCharacterDied;
 
 protected:
 	// Called when the game starts
@@ -96,7 +100,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base")
 	float BaseMoveSpeed = 300.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base", meta = (Tooltip = "»¤¶ÜµÄ×î´óÖµ"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attributes|Base", meta = (Tooltip = "æŠ¤ç›¾çš„æœ€å¤§å€¼"))
 	float MaxShield = 100.0f;
 
 	// --- Current Attributes ---
@@ -109,10 +113,16 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Attributes|Current", meta = (AllowPrivateAccess = "true"))
 	float Shield;
 		
+	/** å¤„ç†è§’è‰²æ­»äº¡ */
+	void HandleDeath();
+
 private:
-	// ÊôĞÔĞŞ¸ÄÆ÷
+	// å±æ€§ä¿®æ”¹å™¨
 	UPROPERTY()
 	TArray<FAttributeModifier> ActiveModifiers;
 
 	void UpdateModifiers(float DeltaTime);
+
+	// æ­»äº¡çŠ¶æ€
+	bool bIsDead = false;
 };

@@ -156,13 +156,13 @@ void USkillComponent::TryConfirmSkill()
         OwnerCharacter->HideRangeIndicators();
     }
 
-    // ✅ 立即执行技能（每个 Effect 自己控制延迟）
+    // 立即执行技能（每个 Effect 自己控制延迟）
     SkillEntry.SkillInstance->Activate();
 
-    // ✅ 设置冷却
+    // 设置冷却
     SkillEntry.CooldownRemaining = SkillData->Cooldown;
 
-    // ✅ 计算最大 Effect 延迟，作为 Casting 状态持续时间
+    // 计算最大 Effect 延迟，作为 Casting 状态持续时间
     float MaxEffectDelay = 0.0f;
     for (USkillEffect* Effect : SkillData->SkillEffects)
     {
@@ -307,4 +307,101 @@ int32 USkillComponent::GetSkillIndex(const UBaseSkill* SkillInstance) const
         }
     }
     return INDEX_NONE;  //找不到则返回-1
+}
+
+bool USkillComponent::AddSkill(USkillDataAsset* NewSkillData)
+{
+    if (!NewSkillData || !OwnerCharacter)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::AddSkill - Invalid skill data or owner"));
+        return false;
+    }
+
+    // 检查是否已满（最多5个技能）
+    if (SkillSlots.Num() >= 5)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::AddSkill - Skill slots are full!"));
+        return false;
+    }
+
+    // 检查是否已经装备了这个技能
+    for (const FSkillEntry& Entry : SkillSlots)
+    {
+        if (Entry.SkillData == NewSkillData)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("SkillComponent::AddSkill - Skill already equipped: %s"), 
+                *NewSkillData->SkillName.ToString());
+            return false;
+        }
+    }
+
+    // 创建技能实例
+    FSkillEntry NewEntry;
+    NewEntry.SkillData = NewSkillData;
+    
+    if (NewSkillData->SkillLogicClass)
+    {
+        NewEntry.SkillInstance = NewObject<UBaseSkill>(this, NewSkillData->SkillLogicClass);
+        if (NewEntry.SkillInstance)
+        {
+            NewEntry.SkillInstance->Initialize(OwnerCharacter, NewSkillData);
+        }
+    }
+    
+    NewEntry.CooldownRemaining = 0.0f;
+    
+    SkillSlots.Add(NewEntry);
+
+    UE_LOG(LogTemp, Log, TEXT("SkillComponent::AddSkill - Added skill: %s (Slot %d)"), 
+        *NewSkillData->SkillName.ToString(), 
+        SkillSlots.Num() - 1);
+    
+    return true;
+}
+
+bool USkillComponent::ReplaceSkill(int32 SlotIndex, USkillDataAsset* NewSkillData)
+{
+    if (!NewSkillData || !OwnerCharacter)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::ReplaceSkill - Invalid skill data or owner"));
+        return false;
+    }
+
+    if (!SkillSlots.IsValidIndex(SlotIndex))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::ReplaceSkill - Invalid slot index: %d"), SlotIndex);
+        return false;
+    }
+
+    // 检查是否替换成相同的技能
+    if (SkillSlots[SlotIndex].SkillData == NewSkillData)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::ReplaceSkill - Same skill, no replacement needed"));
+        return false;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("SkillComponent::ReplaceSkill - Replacing skill at slot %d: %s -> %s"),
+        SlotIndex,
+        SkillSlots[SlotIndex].SkillData ? *SkillSlots[SlotIndex].SkillData->SkillName.ToString() : TEXT("None"),
+        *NewSkillData->SkillName.ToString());
+
+    // 创建新技能实例
+    FSkillEntry NewEntry;
+    NewEntry.SkillData = NewSkillData;
+    
+    if (NewSkillData->SkillLogicClass)
+    {
+        NewEntry.SkillInstance = NewObject<UBaseSkill>(this, NewSkillData->SkillLogicClass);
+        if (NewEntry.SkillInstance)
+        {
+            NewEntry.SkillInstance->Initialize(OwnerCharacter, NewSkillData);
+        }
+    }
+    
+    NewEntry.CooldownRemaining = 0.0f;
+    
+    // 替换技能
+    SkillSlots[SlotIndex] = NewEntry;
+
+    return true;
 }

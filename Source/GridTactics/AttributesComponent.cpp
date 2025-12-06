@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AttributesComponent.h"
@@ -10,7 +10,7 @@ UAttributesComponent::UAttributesComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// È·±£ËüÔÚÎïÀí¸üĞÂÖ®ºó£¬µ«ÔÚ½ÇÉ«Ê¹ÓÃÕâĞ©ÖµÖ®Ç°ÔËĞĞ
+	// ç¡®ä¿å®ƒåœ¨ç‰©ç†æ›´æ–°ä¹‹åï¼Œä½†åœ¨è§’è‰²ä½¿ç”¨è¿™äº›å€¼ä¹‹å‰è¿è¡Œ
 	SetTickGroup(ETickingGroup::TG_PostPhysics);
 }
 
@@ -20,7 +20,7 @@ void UAttributesComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ³õÊ¼»¯µ±Ç°ÊôĞÔ
+	// åˆå§‹åŒ–å½“å‰å±æ€§
 	HP = MaxHP;
 	MP = MaxMP;
 	Stamina = MaxStamina;
@@ -32,7 +32,7 @@ void UAttributesComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ÔÚ×é¼ş×Ô¼ºµÄTickÖĞ¸üĞÂÊôĞÔ
+	// åœ¨ç»„ä»¶è‡ªå·±çš„Tickä¸­æ›´æ–°å±æ€§
 	UpdateAttributes(DeltaTime);
 }
 
@@ -40,7 +40,7 @@ void UAttributesComponent::UpdateAttributes(float DeltaTime)
 {
 	UpdateModifiers(DeltaTime);
 
-	// ÊôĞÔ»Ö¸´
+	// å±æ€§æ¢å¤
 	HP = FMath::Min(MaxHP, HP + GetModifiedAttributeValue(EAttributeType::HPRecoveryRate, BaseHPRecoveryRate) * DeltaTime);
 	MP = FMath::Min(MaxMP, MP + GetModifiedAttributeValue(EAttributeType::MPRecoveryRate, BaseMPRecoveryRate) * DeltaTime);
 	Stamina = FMath::Min(MaxStamina, Stamina + GetModifiedAttributeValue(EAttributeType::StaminaRecoveryRate, BaseStaminaRecoveryRate) * DeltaTime);
@@ -94,6 +94,13 @@ void UAttributesComponent::ApplyDamage(float DamageAmount)
 
 	UE_LOG(LogTemp, Log, TEXT("Damage: %.1f -> Armor Absorbed -> %.1f. Shield took %.1f, HP took %.1f. HP left: %.1f, Shield left: %.1f"),
 		DamageAmount, GetArmor(), DamageToShield, DamageToHP, HP, Shield);
+
+	// æ£€æŸ¥æ­»äº¡
+	if (HP <= 0.0f && !bIsDead)
+	{
+		bIsDead = true;
+		HandleDeath();
+	}
 }
 
 void UAttributesComponent::AddShield(float Amount)
@@ -138,4 +145,33 @@ float UAttributesComponent::GetModifiedAttributeValue(EAttributeType Attribute, 
 	}
 
 	return (BaseValue + Additive) * Multiplicative;
+}
+
+void UAttributesComponent::HandleDeath()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("%s died!"), *Owner->GetName());
+
+	// å¹¿æ’­æ­»äº¡äº‹ä»¶
+	OnCharacterDied.Broadcast(Owner);
+
+	// å»¶è¿Ÿé”€æ¯è§’è‰²
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		[Owner]()
+		{
+			if (Owner && !Owner->IsPendingKillPending())
+			{
+				Owner->Destroy();
+			}
+		},
+		1.5f,  // 1.5ç§’åé”€æ¯
+		false
+	);
 }
