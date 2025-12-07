@@ -123,6 +123,9 @@ protected:
 
     /** 新增：波次完成 */
     void OnWaveComplete();
+
+    // 新增：显示准备界面
+    void ShowPreparationUI();
 private:
     /** 当前波次生成的敌人列表 */
     UPROPERTY()

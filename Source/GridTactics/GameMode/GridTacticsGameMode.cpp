@@ -25,6 +25,9 @@ void AGridTacticsGameMode::BeginPlay()
     // 初始化游戏阶段
     SetGamePhase(EGamePhase::Preparation);
 
+    // 显示准备界面
+    ShowPreparationUI();
+
     UE_LOG(LogTemp, Log, TEXT("GameMode: Entered Preparation Phase"));
 }
 
@@ -111,7 +114,7 @@ void AGridTacticsGameMode::SpawnPlayer()
             PC->Possess(PlayerCharacter);
         }
 
-        // ✅ 绑定死亡事件
+        // 绑定死亡事件
         if (UAttributesComponent* Attrs = PlayerCharacter->FindComponentByClass<UAttributesComponent>())
         {
             Attrs->OnCharacterDied.AddDynamic(this, &AGridTacticsGameMode::OnPlayerDied);
@@ -196,7 +199,7 @@ void AGridTacticsGameMode::SpawnEnemies(const FWaveConfig& WaveConfig)
 
         if (Enemy)
         {
-            // ✅ 绑定敌人死亡事件
+            // 绑定敌人死亡事件
             if (UAttributesComponent* Attrs = Enemy->FindComponentByClass<UAttributesComponent>())
             {
                 Attrs->OnCharacterDied.AddDynamic(this, &AGridTacticsGameMode::OnEnemyDied);
@@ -216,7 +219,7 @@ void AGridTacticsGameMode::SpawnEnemies(const FWaveConfig& WaveConfig)
 
 }
 
-// ✅ 修改：玩家死亡回调
+// 修改：玩家死亡回调
 void AGridTacticsGameMode::OnPlayerDied(AActor* Player)
 {
     SetGamePhase(EGamePhase::Defeat);
@@ -227,7 +230,7 @@ void AGridTacticsGameMode::OnPlayerDied(AActor* Player)
     // TODO: 显示失败界面
 }
 
-// ✅ 新增：敌人死亡回调
+// 新增：敌人死亡回调
 void AGridTacticsGameMode::OnEnemyDied(AActor* Enemy)
 {
     ACharacter* EnemyChar = Cast<ACharacter>(Enemy);
@@ -239,7 +242,7 @@ void AGridTacticsGameMode::OnEnemyDied(AActor* Enemy)
     NotifyEnemyDefeated(EnemyChar);
 }
 
-// ✅ 保持不变
+// 保持不变
 void AGridTacticsGameMode::NotifyEnemyDefeated(ACharacter* Enemy)
 {
     if (CurrentPhase != EGamePhase::Combat)
@@ -329,4 +332,43 @@ void AGridTacticsGameMode::CheckVictoryCondition()
     UE_LOG(LogTemp, Log, TEXT("GameMode: VICTORY!"));
 
     // TODO: 显示胜利界面
+}
+
+void AGridTacticsGameMode::ShowPreparationUI()
+{
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: PlayerController not found"));
+        return;
+    }
+
+    // 显示鼠标
+    PC->bShowMouseCursor = true;
+    PC->bEnableClickEvents = true;
+    PC->bEnableMouseOverEvents = true;
+
+    // 使用 LoadClass 动态加载蓝图类
+    UClass* WidgetClass = LoadClass<UUserWidget>(
+        nullptr,
+        TEXT("/Game/UI/WBP_Preparation.WBP_Preparation_C")
+    );
+
+    if (WidgetClass)
+    {
+        UUserWidget* Widget = CreateWidget<UUserWidget>(PC, WidgetClass);
+        if (Widget)
+        {
+            Widget->AddToViewport();
+            UE_LOG(LogTemp, Log, TEXT("GameMode: Preparation UI displayed"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("GameMode: Failed to create Preparation Widget"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: WBP_Preparation blueprint not found at /Game/UI/WBP_Preparation"));
+    }
 }
