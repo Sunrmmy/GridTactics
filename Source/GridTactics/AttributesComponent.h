@@ -74,6 +74,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnCharacterDied OnCharacterDied;
 
+	/** 受伤事件委托 */
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTaken, float, DamageAmount);
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnDamageTaken OnDamageTaken;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

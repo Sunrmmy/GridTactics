@@ -83,24 +83,27 @@ void UAttributesComponent::ConsumeMP(float Amount)
 
 void UAttributesComponent::ApplyDamage(float DamageAmount)
 {
-	const float DamageAfterArmor = FMath::Max(0.f, DamageAmount - GetArmor());
-	if (DamageAfterArmor <= 0.f) return;
+    const float DamageAfterArmor = FMath::Max(0.f, DamageAmount - GetArmor());
+    if (DamageAfterArmor <= 0.f) return;
 
-	const float DamageToShield = FMath::Min(Shield, DamageAfterArmor);
-	Shield -= DamageToShield;
+    const float DamageToShield = FMath::Min(Shield, DamageAfterArmor);
+    Shield -= DamageToShield;
 
-	const float DamageToHP = DamageAfterArmor - DamageToShield;
-	HP = FMath::Max(0.f, HP - DamageToHP);
+    const float DamageToHP = DamageAfterArmor - DamageToShield;
+    HP = FMath::Max(0.f, HP - DamageToHP);
 
-	UE_LOG(LogTemp, Log, TEXT("Damage: %.1f -> Armor Absorbed -> %.1f. Shield took %.1f, HP took %.1f. HP left: %.1f, Shield left: %.1f"),
-		DamageAmount, GetArmor(), DamageToShield, DamageToHP, HP, Shield);
+    UE_LOG(LogTemp, Log, TEXT("Damage: %.1f -> %.1f after armor. HP: %.1f, Shield: %.1f"),
+        DamageAmount, DamageAfterArmor, HP, Shield);
 
-	// 检查死亡
-	if (HP <= 0.0f && !bIsDead)
-	{
-		bIsDead = true;
-		HandleDeath();
-	}
+    // 广播受伤事件
+    OnDamageTaken.Broadcast(DamageAfterArmor);
+
+    // 检查死亡
+    if (HP <= 0.0f && !bIsDead)
+    {
+        bIsDead = true;
+        HandleDeath();
+    }
 }
 
 void UAttributesComponent::AddShield(float Amount)

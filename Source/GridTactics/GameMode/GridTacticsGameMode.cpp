@@ -379,22 +379,74 @@ void AGridTacticsGameMode::OnWaveComplete()
 void AGridTacticsGameMode::ShowSkillSelection()
 {
     // 暂停游戏
-    if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
     {
-        PC->SetPause(true);
+        return;
     }
+
+    PC->SetPause(true);
+    PC->bShowMouseCursor = true;
 
     // 随机选择3个技能
-    TArray<USkillDataAsset*> AvailableSkills;
+    CurrentSkillOptions.Empty();
+    TArray<int32> UsedIndices;
+
     for (int32 i = 0; i < 3 && SkillPool.Num() > 0; ++i)
     {
-        int32 RandomIndex = FMath::RandRange(0, SkillPool.Num() - 1);
-        AvailableSkills.Add(SkillPool[RandomIndex]);
+        int32 RandomIndex;
+        do
+        {
+            RandomIndex = FMath::RandRange(0, SkillPool.Num() - 1);
+        } while (UsedIndices.Contains(RandomIndex) && UsedIndices.Num() < SkillPool.Num());
+
+        UsedIndices.Add(RandomIndex);
+        CurrentSkillOptions.Add(SkillPool[RandomIndex]);
     }
 
-    // TODO: 显示技能选择 UI，传入 AvailableSkills
+    // 加载技能选择界面
+    UClass* WidgetClass = LoadClass<UUserWidget>(
+        nullptr,
+        TEXT("/Game/UI/WBP_SkillSelection.WBP_SkillSelection_C")
+    );
 
-    UE_LOG(LogTemp, Log, TEXT("GameMode: Showing skill selection (%d options)"), AvailableSkills.Num());
+    if (WidgetClass)
+    {
+        UUserWidget* Widget = CreateWidget<UUserWidget>(PC, WidgetClass);
+        if (Widget)
+        {
+            Widget->AddToViewport(999);  // 高优先级
+            UE_LOG(LogTemp, Log, TEXT("GameMode: Skill selection UI displayed"));
+        }
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("GameMode: Showing skill selection (%d options)"), CurrentSkillOptions.Num());
+}
+
+void AGridTacticsGameMode::OnPlayerSelectSkill(USkillDataAsset* SelectedSkill)
+{
+    if (!SelectedSkill || !PlayerCharacter)
+    {
+        return;
+    }
+
+    // 添加技能到玩家
+    if (USkillComponent* SkillComp = PlayerCharacter->FindComponentByClass<USkillComponent>())
+    {
+        if (SkillComp->AddSkill(SelectedSkill))
+        {
+            UE_LOG(LogTemp, Log, TEXT("GameMode: Player selected skill: %s"), 
+                *SelectedSkill->SkillName.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("GameMode: Failed to add skill (slots full?)"));
+            // TODO: 显示替换界面
+        }
+    }
+
+    // 完成技能选择
+    OnSkillSelectionComplete();
 }
 
 void AGridTacticsGameMode::OnSkillSelectionComplete()
@@ -405,6 +457,13 @@ void AGridTacticsGameMode::OnSkillSelectionComplete()
     if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
     {
         PC->SetPause(false);
+        PC->bShowMouseCursor = true;  // 保持鼠标可见
+
+        // 恢复输入模式
+        FInputModeGameAndUI InputMode;
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        InputMode.SetHideCursorDuringCapture(false);
+        PC->SetInputMode(InputMode);
     }
 
     UE_LOG(LogTemp, Log, TEXT("GameMode: Skill selection complete"));

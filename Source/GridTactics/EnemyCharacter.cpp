@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "EnemyCharacter.h"
@@ -9,6 +9,10 @@
 #include "EnemyAIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
+#include "TimerManager.h"
 
 // Sets default values
 AEnemyCharacter::AEnemyCharacter()
@@ -16,7 +20,7 @@ AEnemyCharacter::AEnemyCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// ½ûÓÃÄ¬ÈÏµÄ½ÇÉ«ÒÆ¶¯Ğı×ª£¬ÒÔ±ãÎÒÃÇÍ¨¹ı×é¼ş¾«È·¿ØÖÆ
+	// ç¦ç”¨é»˜è®¤çš„è§’è‰²ç§»åŠ¨æ—‹è½¬ï¼Œä»¥ä¾¿æˆ‘ä»¬é€šè¿‡ç»„ä»¶ç²¾ç¡®æ§åˆ¶
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
@@ -25,17 +29,17 @@ AEnemyCharacter::AEnemyCharacter()
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>(TEXT("AttributesComponent"));
 
-	// ÉèÖÃAI¿ØÖÆÆ÷À´Ä¬ÈÏ¸½ÉíÕâ¸öCharacter
+	// è®¾ç½®AIæ§åˆ¶å™¨æ¥é»˜è®¤é™„èº«è¿™ä¸ªCharacter
 	AIControllerClass = AEnemyAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
-	// ´´½¨Í·¶¥ÑªÌõµÄWidgetComponent
+	// åˆ›å»ºå¤´é¡¶è¡€æ¡çš„WidgetComponent
 	HealthBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidget"));
 	HealthBarWidgetComponent->SetupAttachment(RootComponent);
-	HealthBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen); // ÉèÖÃÎªÆÁÄ»¿Õ¼ä£¬Ëü»áÊ¼ÖÕÃæÏò¾µÍ·
-	HealthBarWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 120.f)); // µ÷Õûµ½½ÇÉ«Í·¶¥Î»ÖÃ
-	HealthBarWidgetComponent->SetDrawSize(FVector2D(100.f, 20.f)); // ÉèÖÃ¿Ø¼şµÄ»æÖÆ´óĞ¡
-	HealthBarWidgetComponent->SetWidget(nullptr);	// Ä¬ÈÏÎª¿Õ
+	HealthBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen); // è®¾ç½®ä¸ºå±å¹•ç©ºé—´ï¼Œå®ƒä¼šå§‹ç»ˆé¢å‘é•œå¤´
+	HealthBarWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 120.f)); // è°ƒæ•´åˆ°è§’è‰²å¤´é¡¶ä½ç½®
+	HealthBarWidgetComponent->SetDrawSize(FVector2D(100.f, 20.f)); // è®¾ç½®æ§ä»¶çš„ç»˜åˆ¶å¤§å°
+	HealthBarWidgetComponent->SetWidget(nullptr);	// é»˜è®¤ä¸ºç©º
 
 }
 
@@ -46,10 +50,10 @@ void AEnemyCharacter::BeginPlay()
 
 	if (HealthBarWidgetClass && HealthBarWidgetComponent)
 	{
-		// ½«Ö¸¶¨µÄUIÀàÉèÖÃ¸øWidgetComponent
+		// å°†æŒ‡å®šçš„UIç±»è®¾ç½®ç»™WidgetComponent
 		HealthBarWidgetComponent->SetWidgetClass(HealthBarWidgetClass);
 
-		// Ê¹ÓÃ AttributesBar µÄ½Ó¿Ú
+		// ä½¿ç”¨ AttributesBar çš„æ¥å£
 		if (UAttributesBar* AttributesBar = Cast<UAttributesBar>(HealthBarWidgetComponent->GetUserWidgetObject()))
 		{
 			AttributesBar->SetOwnerActor(this);
@@ -70,6 +74,16 @@ void AEnemyCharacter::BeginPlay()
 		{
 			UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: HealthBarWidgetComponent is NULL for %s!"), *GetName());
 		}
+	}
+
+	// ç»‘å®šå—ä¼¤å’Œæ­»äº¡äº‹ä»¶
+	if (AttributesComponent)
+	{
+		// ç»‘å®šå—ä¼¤å§”æ‰˜ï¼ˆAttributesComponent ä¸­æ–°å¢ï¼‰
+		AttributesComponent->OnDamageTaken.AddDynamic(this, &AEnemyCharacter::OnTakeDamage);
+
+		// ç»‘å®šæ­»äº¡å§”æ‰˜
+		AttributesComponent->OnCharacterDied.AddDynamic(this, &AEnemyCharacter::OnDeath);
 	}
 }
 
@@ -94,4 +108,105 @@ float AEnemyCharacter::GetCurrentActualSpeed() const
 		return GridMovementComponent->GetCurrentActualSpeed();
 	}
 	return 0.0f;
+}
+
+// ========================================
+// å—å‡»å¤„ç†
+// ========================================
+
+void AEnemyCharacter::OnTakeDamage(float Damage)
+{
+    if (bIsDead)
+    {
+        return;
+    }
+
+    // è®¾ç½®å—å‡»çŠ¶æ€ï¼ˆåŠ¨ç”»è“å›¾ä¼šè¯»å–è¿™ä¸ªå˜é‡ï¼‰
+    bIsHit = true;
+
+    UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: %s taking damage %.1f"), *GetName(), Damage);
+
+    // æ’­æ”¾å—å‡»éŸ³æ•ˆ
+    if (HitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            this,
+            HitSound,
+            GetActorLocation(),
+            1.0f,
+            1.0f
+        );
+    }
+
+    // è‡ªåŠ¨é‡ç½®å—å‡»çŠ¶æ€ï¼ˆé¿å…å¡åœ¨å—å‡»åŠ¨ç”»ï¼‰
+    FTimerHandle HitResetTimer;
+    GetWorld()->GetTimerManager().SetTimer(
+        HitResetTimer,
+        [this]()
+        {
+            bIsHit = false;
+        },
+        HitReactionDuration,
+        false
+    );
+}
+
+// ========================================
+// æ­»äº¡å¤„ç†
+// ========================================
+
+void AEnemyCharacter::OnDeath(AActor* DeadActor)
+{
+    if (bIsDead)
+    {
+        return;
+    }
+
+    bIsDead = true;
+
+    UE_LOG(LogTemp, Warning, TEXT("EnemyCharacter: %s died!"), *GetName());
+
+    // æ’­æ”¾æ­»äº¡éŸ³æ•ˆ
+    if (DeathSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            this,
+            DeathSound,
+            GetActorLocation(),
+            1.0f,
+            1.0f
+        );
+    }
+
+    // ç¦ç”¨ç¢°æ’å’Œ AI
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // ç¦ç”¨ AI
+    if (AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController()))
+    {
+        AIController->UnPossess();
+    }
+
+    // éšè—è¡€æ¡
+    if (HealthBarWidgetComponent)
+    {
+        HealthBarWidgetComponent->SetVisibility(false);
+    }
+
+    // å»¶è¿Ÿé”€æ¯å°¸ä½“
+    FTimerHandle CorpseTimer;
+    GetWorld()->GetTimerManager().SetTimer(
+        CorpseTimer,
+        [this]()
+        {
+            if (IsValid(this))
+            {
+                Destroy();
+                UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: Corpse destroyed"));
+            }
+        },
+        CorpseLifetime,
+        false
+    );
 }

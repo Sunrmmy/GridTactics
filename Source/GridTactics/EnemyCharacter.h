@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -11,45 +11,89 @@ class USkillComponent;
 class AEnemyAIController;
 class UAttributesComponent;
 class UWidgetComponent;
+class USoundBase;
+
 UCLASS()
 class GRIDTACTICS_API AEnemyCharacter : public ACharacter
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
-	AEnemyCharacter();
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    AEnemyCharacter();
+    virtual void Tick(float DeltaTime) override;
+    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	
-	// ÈÃAI¿ØÖÆÆ÷¿ÉÒÔ»ñÈ¡ÕâĞ©×é¼şÀ´ÏÂ´ïÖ¸Áî
-	UGridMovementComponent* GetGridMovementComponent() const { return GridMovementComponent; }
-	USkillComponent* GetSkillComponent() const { return SkillComponent; }
-	UAttributesComponent* GetAttributesComponent() const { return AttributesComponent; }
+    // ç»„ä»¶è®¿é—®å™¨
+    UGridMovementComponent* GetGridMovementComponent() const { return GridMovementComponent; }
+    USkillComponent* GetSkillComponent() const { return SkillComponent; }
+    UAttributesComponent* GetAttributesComponent() const { return AttributesComponent; }
+    
+    UFUNCTION(BlueprintPure, Category = "Animation")
+    float GetCurrentActualSpeed() const;
 
-	UFUNCTION(BlueprintPure, Category = "Animation")
-	float GetCurrentActualSpeed() const;
+    // åŠ¨ç”»çŠ¶æ€æ¥å£ï¼ˆä¾›åŠ¨ç”»è“å›¾ä½¿ç”¨ï¼‰
+    UFUNCTION(BlueprintPure, Category = "Animation")
+    bool IsHit() const { return bIsHit; }
+
+    UFUNCTION(BlueprintPure, Category = "Animation")
+    bool IsDead() const { return bIsDead; }
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UGridMovementComponent> GridMovementComponent;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USkillComponent> SkillComponent;
-	// ÎªµĞÈË½ÇÉ«Ìí¼ÓÊôĞÔ×é¼ş
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UAttributesComponent> AttributesComponent;
+    // å—ä¼¤å›è°ƒ
+    UFUNCTION()
+    void OnTakeDamage(float Damage);
 
+    // æ­»äº¡å›è°ƒ
+    UFUNCTION()
+    void OnDeath(AActor* DeadActor);
 
-	// ÊôĞÔÏÔÊ¾UI£¨ÔÚÀ¶Í¼ÖĞÖ¸¶¨Í·¶¥ÊôĞÔÏÔÊ¾UI¿Õ¼äÀà£©
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UUserWidget> HealthBarWidgetClass;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
+    // ç»„ä»¶
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UGridMovementComponent> GridMovementComponent;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<USkillComponent> SkillComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UAttributesComponent> AttributesComponent;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<class UUserWidget> HealthBarWidgetClass;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+    TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
+
+    // ========================================
+    // åŠ¨ç”»çŠ¶æ€å˜é‡ï¼ˆä¾›åŠ¨ç”»è“å›¾è¯»å–ï¼‰
+    // ========================================
+
+    /** æ˜¯å¦æ­£åœ¨å—å‡» */
+    UPROPERTY(BlueprintReadOnly, Category = "Animation State")
+    bool bIsHit = false;
+
+    /** æ˜¯å¦å·²ç»æ­»äº¡ */
+    UPROPERTY(BlueprintReadOnly, Category = "Animation State")
+    bool bIsDead = false;
+
+    // ========================================
+    // éŸ³æ•ˆé…ç½®
+    // ========================================
+
+    /** å—å‡»éŸ³æ•ˆ */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+    TObjectPtr<USoundBase> HitSound;
+
+    /** æ­»äº¡éŸ³æ•ˆ */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+    TObjectPtr<USoundBase> DeathSound;
+
+    /** æ­»äº¡åå°¸ä½“ä¿ç•™æ—¶é—´ï¼ˆç§’ï¼‰ */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Death")
+    float CorpseLifetime = 3.0f;
+
+    /** å—å‡»åŠ¨ç”»æŒç»­æ—¶é—´ï¼ˆè‡ªåŠ¨é‡ç½® bIsHitï¼‰ */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    float HitReactionDuration = 0.5f;
 };

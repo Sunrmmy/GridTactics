@@ -102,9 +102,17 @@ public:
     UFUNCTION()
     void OnPlayerDied(AActor* Player);
 
-    // 新增：玩家角色蓝图类
+    // 玩家角色蓝图类
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player")
     TSubclassOf<AHeroCharacter> PlayerCharacterClass;
+
+    // 新增：当前可选技能列表
+    UPROPERTY(BlueprintReadWrite, Category = "Skill Selection")
+    TArray<TObjectPtr<USkillDataAsset>> CurrentSkillOptions;
+
+    // 新增：玩家选择技能
+    UFUNCTION(BlueprintCallable, Category = "Skill Selection")
+    void OnPlayerSelectSkill(USkillDataAsset* SelectedSkill);
 
 protected:
     /** 切换游戏阶段 */
