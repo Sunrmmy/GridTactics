@@ -69,6 +69,8 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: SetupPlayerInputComponent called"));
+
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// 绑定IA_Move到OnMove函数
@@ -82,6 +84,12 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 		// 绑定鼠标点击用于确认施法
 		EnhancedInput->BindAction(IA_PrimaryAttack, ETriggerEvent::Started, this, &AHeroCharacter::OnConfirmSkill);
+
+		UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Enhanced Input actions bound"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("HeroCharacter: Failed to cast to EnhancedInputComponent"));
 	}
 }
 
@@ -91,32 +99,53 @@ void AHeroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 缓存PlayerState的引用
 	GTPlayerState = GetPlayerState<AGridTacticsPlayerState>();
 
+	// 修改：改为警告而不是提前退出
 	if (!IMC_Hero || !IA_Move)
 	{
-		UE_LOG(LogTemp, Error, TEXT("IMC_Hero or IA_Move is NULL! Check HeroCharacter blueprint settings."));
-		return;
+		UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: IMC_Hero or IA_Move is NULL! Input may not work. Check BP_HeroCharacter Class Defaults."));
+		// 删除 return; 不再提前退出
 	}
 
 	// 绑定 Enhanced Input
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		// 只有在 IMC_Hero 和 IA_Move 都有效时才绑定
+		if (IMC_Hero && IA_Move)
 		{
-			Subsystem->AddMappingContext(IMC_Hero, 0);
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = 
+				ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+			{
+				Subsystem->ClearAllMappings();
+				Subsystem->AddMappingContext(IMC_Hero, 0);
+
+				UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Enhanced Input Mapping Context added"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("HeroCharacter: Failed to get Enhanced Input Subsystem"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("HeroCharacter: Cannot bind input - IMC_Hero or IA_Move is NULL"));
 		}
 
-		// 创建并显示UI
+		// 创建 HUD
 		if (PlayerHUDClass && IsLocallyControlled())
 		{
 			PlayerHUD = CreateWidget<UHUDWidget>(PlayerController, PlayerHUDClass);
 			if (PlayerHUD)
 			{
 				PlayerHUD->AddToViewport();
+				UE_LOG(LogTemp, Log, TEXT("HeroCharacter: HUD displayed"));
 			}
 		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: BeginPlay called but no PlayerController assigned yet"));
 	}
 }
 
@@ -425,4 +454,44 @@ FVector AHeroCharacter::GetDirectionToMouse() const
     FVector DirToMouse = (MouseGroundPos - GetActorLocation()).GetSafeNormal();
     
     return DirToMouse;
+}
+
+
+void AHeroCharacter::PossessedBy(AController* NewController)
+{
+    Super::PossessedBy(NewController);
+
+    UE_LOG(LogTemp, Warning, TEXT("HeroCharacter::PossessedBy - Controller: %s"), 
+        NewController ? *NewController->GetName() : TEXT("None"));
+
+    // 在被 Possess 后重新确保 Input Mapping Context 存在
+    if (APlayerController* PC = Cast<APlayerController>(NewController))
+    {
+        if (IMC_Hero)
+        {
+            if (UEnhancedInputLocalPlayerSubsystem* Subsystem = 
+                ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+            {
+                // 不清除，直接添加
+                Subsystem->AddMappingContext(IMC_Hero, 0);
+
+                UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: Input Mapping Context added in PossessedBy"));
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("HeroCharacter: IMC_Hero is NULL in PossessedBy"));
+        }
+
+        // 创建 HUD（如果还没创建）
+        if (PlayerHUDClass && !PlayerHUD && IsLocallyControlled())
+        {
+            PlayerHUD = CreateWidget<UHUDWidget>(PC, PlayerHUDClass);
+            if (PlayerHUD)
+            {
+                PlayerHUD->AddToViewport();
+                UE_LOG(LogTemp, Log, TEXT("HeroCharacter: HUD created in PossessedBy"));
+            }
+        }
+    }
 }

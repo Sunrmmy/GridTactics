@@ -82,6 +82,10 @@ public:
     // 公开接口
     // ========================================
 
+    /** 临时存储准备阶段选择的技能 */
+    UPROPERTY(BlueprintReadWrite, Category = "Preparation")
+    TArray<TObjectPtr<USkillDataAsset>> PendingSkills;
+
     /** 玩家准备完毕 */
     UFUNCTION(BlueprintCallable, Category = "Game Flow")
     void OnPlayerReady();
@@ -97,6 +101,10 @@ public:
     /** 修改：玩家死亡回调 */
     UFUNCTION()
     void OnPlayerDied(AActor* Player);
+
+    // 新增：玩家角色蓝图类
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player")
+    TSubclassOf<AHeroCharacter> PlayerCharacterClass;
 
 protected:
     /** 切换游戏阶段 */
@@ -126,6 +134,11 @@ protected:
 
     // 新增：显示准备界面
     void ShowPreparationUI();
+
+    // 覆盖默认生成逻辑
+    virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
+    virtual APawn* SpawnDefaultPawnFor_Implementation(AController* NewPlayer, AActor* StartSpot) override;
+    virtual void RestartPlayer(AController* NewPlayer) override;
 private:
     /** 当前波次生成的敌人列表 */
     UPROPERTY()

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -22,8 +22,8 @@ class APlayerController;
 UENUM(BlueprintType)
 enum class ECharacterRootState : uint8
 {
-	Idle,           // ¿ÕÏĞ
-	Busy            // Ê¹ÓÃÍ¨ÓÃµÄÃ¦Âµ×´Ì¬À´±íÊ¾½ÇÉ«ÕıÔÚÖ´ĞĞÒÆ¶¯»òÕıÔÚÊ©·¨µÈ£¨¾ßÌå×´Ì¬Ç¨ÒÆµ½ÆäËü×é¼şÖĞ£©
+	Idle,           // ç©ºé—²
+	Busy            // ä½¿ç”¨é€šç”¨çš„å¿™ç¢ŒçŠ¶æ€æ¥è¡¨ç¤ºè§’è‰²æ­£åœ¨æ‰§è¡Œç§»åŠ¨æˆ–æ­£åœ¨æ–½æ³•ç­‰ï¼ˆå…·ä½“çŠ¶æ€è¿ç§»åˆ°å…¶å®ƒç»„ä»¶ä¸­ï¼‰
 };
 
 UCLASS()
@@ -44,40 +44,72 @@ public:
 	TObjectPtr<USpringArmComponent> CameraBoom;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraComponent> Camera;
-	//·µ»ØCameraBoom subobject
+	//è¿”å›CameraBoom subobject
 	TObjectPtr<USpringArmComponent> GetCameraBoom() const { return CameraBoom; }
-	// ·µ»ØCameraComponent subobject
+	// è¿”å›CameraComponent subobject
 	TObjectPtr<UCameraComponent> GetCamera() const { return Camera; }
 
 
-	// Îª½ÇÉ«Ìí¼ÓÍø¸ñÒÆ¶¯×é¼ş
+	// ä¸ºè§’è‰²æ·»åŠ ç½‘æ ¼ç§»åŠ¨ç»„ä»¶
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	TObjectPtr<UGridMovementComponent> GridMovementComponent;
-	// Îª½ÇÉ«Ìí¼Ó×Ô¶¨ÒåµÄ¼¼ÄÜ×é¼ş
+	// ä¸ºè§’è‰²æ·»åŠ è‡ªå®šä¹‰çš„æŠ€èƒ½ç»„ä»¶
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkillComponent> SkillComponent;
-	// Îª½ÇÉ«Ìí¼ÓĞÂµÄÊôĞÔ×é¼ş
+	// ä¸ºè§’è‰²æ·»åŠ æ–°çš„å±æ€§ç»„ä»¶
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAttributesComponent> AttributesComponent;
 
+	// ========================================
+	// Input å˜é‡
+	// ========================================
 
+	/** Enhanced Input Mapping Context */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputMappingContext> IMC_Hero;
 
-	// »ùÓÚ½ÇÉ«Î»ÖÃ¼ÆËã·¶Î§
+	/** Input Actions */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Move;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_PrimaryAttack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Cancel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Skill_0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Skill_1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Skill_2;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Skill_3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> IA_Skill_4;
+
+	// ========================================
+	// å…¬å¼€æ¥å£
+	// ========================================
+	
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	TArray<FIntPoint> GetSkillRangeInWorld(const TArray<FIntPoint>& Pattern) const;
-	// »ùÓÚÖ¸¶¨ÖĞĞÄµã¼ÆËã·¶Î§
+
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	TArray<FIntPoint> GetSkillRangeInWorldFromCenter(const TArray<FIntPoint>& Pattern, FIntPoint CenterGrid) const;
 
-
-	// ÏÔÊ¾¼¼ÄÜ·¶Î§Ö¸Ê¾Æ÷£¨À¶Í¼ÊµÏÖ£©[À¶É«]
 	UFUNCTION(BlueprintImplementableEvent, Category = "Skills")
 	void ShowRangeIndicators(const TArray<FIntPoint>& GridsToHighlight);
-	// ÏÔÊ¾Ğ§¹û·¶Î§Ö¸Ê¾Æ÷ [ºìÉ«]
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Skills")
 	void ShowEffectIndicators(const TArray<FIntPoint>& GridsToHighlight);
 
-	// Òş²ØËùÓĞ·¶Î§Ö¸Ê¾Æ÷£¨À¶Í¼ÊµÏÖ,¿ÉÒÔ×÷Îªº¯Êı±»µ÷ÓÃ£©
+	// éšè—æ‰€æœ‰èŒƒå›´æŒ‡ç¤ºå™¨ï¼ˆè“å›¾å®ç°,å¯ä»¥ä½œä¸ºå‡½æ•°è¢«è°ƒç”¨ï¼‰
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Skills")
 	void HideRangeIndicators();
 	//virtual void HideRangeIndicators_Implementation();
@@ -92,63 +124,44 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Grid")
 	UGridMovementComponent* GetGridMovementComponent() const { return GridMovementComponent; }
 
+	// æ–°å¢ï¼šUI ç±»
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<class UHUDWidget> PlayerHUDClass;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// Enhanced Input ÏìÓ¦º¯Êı£¨´¦ÀíÊäÈë£©
+	// ========================================
+	// Input å“åº”å‡½æ•°ï¼ˆå¯ä»¥ä¿æŒ protectedï¼‰
+	// ========================================
+
 	void OnMove(const FInputActionValue& Value);
 	void OnSkillButtonPressed(int32 SkillIndex);
 	void OnConfirmSkill();
 	void OnCancelSkill();
 
-	//ÊäÈë¶¯×÷£¨ÔöÇ¿ÊäÈëÏµÍ³£©
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputMappingContext> IMC_Hero;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Move;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_PrimaryAttack;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Cancel;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Skill_0;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Skill_1;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Skill_2;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Skill_3;
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TObjectPtr<UInputAction> IA_Skill_4;
-	// ...ÆäËûÊäÈë¶¯×÷...
-
-
-	// ¼¼ÄÜ·¶Î§¸üĞÂÏà¹Øº¯Êı
+	// æŠ€èƒ½èŒƒå›´æ›´æ–°ç›¸å…³å‡½æ•°
 	void UpdateAimingDirection();
 	void UpdateDirectionalSkillRange(const USkillDataAsset* SkillData);
 	void UpdateTargetedSkillRange(const USkillDataAsset* SkillData, APlayerController* PC);
 
-	// ¸¨Öúº¯Êı
+	// è¾…åŠ©å‡½æ•°
 	FVector GetDirectionToMouse() const;
 
-	// ÓÃÓÚÏÔÊ¾Íæ¼Ò×´Ì¬µÄUI¿Ø¼şÀ¶Í¼Àà
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UHUDWidget> PlayerHUDClass;
+	// è¦†ç›– PossessedByï¼ˆåœ¨ Pawn è¢«æ§åˆ¶å™¨å æœ‰æ—¶è°ƒç”¨ï¼‰
+	virtual void PossessedBy(AController* NewController) override;
 
 private:
-	// ½ÇÉ«×´Ì¬
+	// è§’è‰²çŠ¶æ€
 	UPROPERTY()
 	TObjectPtr<AGridTacticsPlayerState> GTPlayerState;
 
-	// ´´½¨³öµÄUI¿Ø¼şÊµÀı
+	// åˆ›å»ºå‡ºçš„UIæ§ä»¶å®ä¾‹
 	UPROPERTY()
 	TObjectPtr<class UHUDWidget> PlayerHUD;
 
-	// ½ÇÉ«µ±Ç°µÄ¸ù×´Ì¬
+	// è§’è‰²å½“å‰çš„æ ¹çŠ¶æ€
 	ECharacterRootState RootState = ECharacterRootState::Idle;
 };
 

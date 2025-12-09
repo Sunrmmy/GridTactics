@@ -2,20 +2,28 @@
 
 
 #include "GridTacticsGameMode.h"
+#include "GridTactics/GridTacticsPlayerController.h"
 #include "GridTactics/HeroCharacter.h"
 #include "GridTactics/GridManager.h"
 #include "GridTactics/SkillComponent.h"
 #include "GridTactics/SkillDataAsset.h"
 #include "GridTactics/AttributesComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
+#include "InputAction.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
 
 AGridTacticsGameMode::AGridTacticsGameMode()
 {
     PrimaryActorTick.bCanEverTick = true;
-
+    DefaultPawnClass = nullptr;  // 禁用自动生成
     // 设置默认玩家控制器
-    // PlayerControllerClass = AGridTacticsPlayerController::StaticClass();
+    PlayerControllerClass = AGridTacticsPlayerController::StaticClass();
+
+    // 设置默认玩家角色类为 C++（蓝图中可以覆盖）
+    PlayerCharacterClass = AHeroCharacter::StaticClass();
 }
 
 void AGridTacticsGameMode::BeginPlay()
@@ -91,7 +99,7 @@ void AGridTacticsGameMode::SpawnPlayer()
 
     // 计算生成位置
     FVector SpawnLocation = GridMgr->GridToWorld(PlayerSpawnGrid);
-    SpawnLocation.Z = 100.0f;  // 略微抬高避免穿模
+    SpawnLocation.Z = 50.0f;  // 略微抬高避免穿模
 
     FRotator SpawnRotation = FRotator::ZeroRotator;
 
@@ -99,8 +107,15 @@ void AGridTacticsGameMode::SpawnPlayer()
     FActorSpawnParameters SpawnParams;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
+    // 修改：使用配置的蓝图类
+    if (!PlayerCharacterClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: PlayerCharacterClass is NULL!"));
+        return;
+    }
+
     PlayerCharacter = GetWorld()->SpawnActor<AHeroCharacter>(
-        AHeroCharacter::StaticClass(),
+        PlayerCharacterClass,  // 使用蓝图类
         SpawnLocation,
         SpawnRotation,
         SpawnParams
@@ -108,16 +123,86 @@ void AGridTacticsGameMode::SpawnPlayer()
 
     if (PlayerCharacter)
     {
-        // 设置玩家控制器
-        if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+        // 添加调试日志
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: Spawned %s from class %s"), 
+            *PlayerCharacter->GetName(),
+            *PlayerCharacterClass->GetName());
+
+        // 在生成后立即添加技能
+        if (USkillComponent* SkillComp = PlayerCharacter->FindComponentByClass<USkillComponent>())
         {
-            PC->Possess(PlayerCharacter);
+            for (USkillDataAsset* Skill : PendingSkills)
+            {
+                if (Skill)
+                {
+                    SkillComp->AddSkill(Skill);
+                    UE_LOG(LogTemp, Log, TEXT("GameMode: Added pending skill: %s"), 
+                        *Skill->SkillName.ToString());
+                }
+            }
+
+            // 清空临时技能列表
+            PendingSkills.Empty();
         }
+
+        // 延迟 Possess
+        FTimerHandle PossessTimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(
+            PossessTimerHandle,
+            [this]()
+            {
+                if (PlayerCharacter && PlayerCharacter->IsValidLowLevel())
+                {
+                    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+                    if (PC)
+                    {
+                        PC->Possess(PlayerCharacter);
+                        UE_LOG(LogTemp, Warning, TEXT("GameMode: Possessed %s"), *PlayerCharacter->GetName());
+
+                        // 设置视图目标
+                        FTimerHandle ViewTimerHandle;
+                        GetWorld()->GetTimerManager().SetTimer(
+                            ViewTimerHandle,
+                            [this, PC]()
+                            {
+                                if (PlayerCharacter)
+                                {
+                                    PC->SetViewTarget(PlayerCharacter);
+                                    UE_LOG(LogTemp, Warning, TEXT("GameMode: SetViewTarget to %s"), 
+                                        *PlayerCharacter->GetName());
+                                }
+                            },
+                            0.2f,
+                            false
+                        );
+
+                        // 恢复输入模式
+                        FInputModeGameAndUI InputMode;
+                        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                        InputMode.SetHideCursorDuringCapture(false);
+                        PC->SetInputMode(InputMode);
+                        PC->bShowMouseCursor = true;
+                    }
+                }
+            },
+            0.5f,
+            false
+        );
 
         // 绑定死亡事件
         if (UAttributesComponent* Attrs = PlayerCharacter->FindComponentByClass<UAttributesComponent>())
         {
             Attrs->OnCharacterDied.AddDynamic(this, &AGridTacticsGameMode::OnPlayerDied);
+        }
+
+        // 调试：检查 IMC_Hero
+        if (PlayerCharacter->IMC_Hero)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("GameMode: IMC_Hero = %s"), *PlayerCharacter->IMC_Hero->GetName());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("GameMode: IMC_Hero is NULL! Did you set it in BP_HeroCharacter?"));
         }
 
         UE_LOG(LogTemp, Log, TEXT("GameMode: Player spawned at grid (%d, %d)"),
@@ -371,4 +456,50 @@ void AGridTacticsGameMode::ShowPreparationUI()
     {
         UE_LOG(LogTemp, Error, TEXT("GameMode: WBP_Preparation blueprint not found at /Game/UI/WBP_Preparation"));
     }
+}
+
+APawn* AGridTacticsGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform)
+{
+    // 在准备阶段完全阻止自动生成
+    if (CurrentPhase == EGamePhase::Preparation)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: SpawnDefaultPawnAtTransform blocked - in Preparation phase"));
+        return nullptr;
+    }
+
+    // 其他阶段返回手动生成的角色
+    if (PlayerCharacter)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: SpawnDefaultPawnAtTransform - returning existing PlayerCharacter"));
+        return PlayerCharacter;
+    }
+
+    return Super::SpawnDefaultPawnAtTransform_Implementation(NewPlayer, SpawnTransform);
+}
+
+APawn* AGridTacticsGameMode::SpawnDefaultPawnFor_Implementation(AController* NewPlayer, AActor* StartSpot)
+{
+    if (CurrentPhase == EGamePhase::Preparation)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: SpawnDefaultPawnFor blocked - in Preparation phase"));
+        return nullptr;
+    }
+
+    if (PlayerCharacter)
+    {
+        return PlayerCharacter;
+    }
+
+    return Super::SpawnDefaultPawnFor_Implementation(NewPlayer, StartSpot);
+}
+
+void AGridTacticsGameMode::RestartPlayer(AController* NewPlayer)
+{
+    if (CurrentPhase == EGamePhase::Preparation)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: RestartPlayer blocked - in Preparation phase"));
+        return;
+    }
+
+    Super::RestartPlayer(NewPlayer);
 }
