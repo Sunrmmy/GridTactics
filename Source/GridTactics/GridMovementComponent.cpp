@@ -385,7 +385,7 @@ void UGridMovementComponent::ExecuteDisplacementPathWithHeight(
         return;
     }
 
-    // ✅ 缓存当前高度作为基准
+    // 缓存当前高度作为基准
     if (OwnerCharacter)
     {
         DisplacementInitialHeight = OwnerCharacter->GetActorLocation().Z;

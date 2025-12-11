@@ -324,16 +324,16 @@ bool USkillComponent::AddSkill(USkillDataAsset* NewSkillData)
         return false;
     }
 
-    // 检查是否已经装备了这个技能
-    for (const FSkillEntry& Entry : SkillSlots)
-    {
-        if (Entry.SkillData == NewSkillData)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("SkillComponent::AddSkill - Skill already equipped: %s"), 
-                *NewSkillData->SkillName.ToString());
-            return false;
-        }
-    }
+    //// 检查是否已经装备了这个技能
+    //for (const FSkillEntry& Entry : SkillSlots)
+    //{
+    //    if (Entry.SkillData == NewSkillData)
+    //    {
+    //        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::AddSkill - Skill already equipped: %s"), 
+    //            *NewSkillData->SkillName.ToString());
+    //        return false;
+    //    }
+    //}
 
     // 创建技能实例
     FSkillEntry NewEntry;

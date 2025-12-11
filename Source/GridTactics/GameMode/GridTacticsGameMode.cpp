@@ -14,6 +14,7 @@
 #include "InputAction.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/AudioComponent.h"
 
 AGridTacticsGameMode::AGridTacticsGameMode()
 {
@@ -32,6 +33,12 @@ void AGridTacticsGameMode::BeginPlay()
 
     // 初始化游戏阶段
     SetGamePhase(EGamePhase::Preparation);
+
+    // 播放准备阶段音乐
+    if (PreparationMusic)
+    {
+        PlayMusic(PreparationMusic, 2.0f);
+    }
 
     // 显示准备界面
     ShowPreparationUI();
@@ -72,6 +79,12 @@ void AGridTacticsGameMode::OnPlayerReady()
     }
 
     UE_LOG(LogTemp, Log, TEXT("GameMode: Player is ready, starting combat"));
+
+    // 切换到战斗音乐
+    if (CombatMusic)
+    {
+        PlayMusic(CombatMusic, 1.5f);
+    }
 
     // 生成玩家
     SpawnPlayer();
@@ -229,6 +242,12 @@ void AGridTacticsGameMode::StartNextWave()
         WaveConfigs.Num(),
         *WaveConfig.WaveName.ToString());
 
+    // 播放波次开始音效
+    if (WaveStartSound)
+    {
+        PlaySFX(WaveStartSound);
+    }
+
     // 广播波次变更
     OnWaveChanged.Broadcast(CurrentWaveIndex + 1, WaveConfigs.Num());
 
@@ -312,6 +331,23 @@ void AGridTacticsGameMode::OnPlayerDied(AActor* Player)
     UE_LOG(LogTemp, Error, TEXT("GameMode: DEFEAT! Player %s died"), 
         Player ? *Player->GetName() : TEXT("Unknown"));
 
+    // 停止背景音乐并播放失败音效
+    StopMusic(1.0f);
+
+    if (DefeatSound)
+    {
+        // 延迟播放，让音乐先淡出一点
+        FTimerHandle TimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(
+            TimerHandle,
+            [this]()
+            {
+                PlaySFX(DefeatSound);
+            },
+            0.5f,
+            false
+        );
+    }
     // TODO: 显示失败界面
 }
 
@@ -341,14 +377,29 @@ void AGridTacticsGameMode::NotifyEnemyDefeated(ACharacter* Enemy)
 
     UE_LOG(LogTemp, Log, TEXT("GameMode: Enemy defeated, %d remaining"), RemainingEnemies);
 
+    // 播放敌人击败音效
+    if (EnemyDefeatSound)
+    {
+        PlaySFX(EnemyDefeatSound);
+    }
+
     // 广播事件
     OnEnemyDefeated.Broadcast(Enemy);
 
-    // 显示技能选择
+    // 延迟显示技能选择
     if (!bWaitingForSkillSelection)
     {
         bWaitingForSkillSelection = true;
-        ShowSkillSelection();
+
+        // 使用 Timer 延迟显示
+        FTimerHandle DelayTimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(
+            DelayTimerHandle,
+            this,
+            &AGridTacticsGameMode::ShowSkillSelection,
+            1.5f,  // 延迟
+            false
+        );
     }
 
     // 检查波次是否完成
@@ -388,26 +439,35 @@ void AGridTacticsGameMode::ShowSkillSelection()
     PC->SetPause(true);
     PC->bShowMouseCursor = true;
 
-    // 随机选择3个技能
-    CurrentSkillOptions.Empty();
-    TArray<int32> UsedIndices;
-
-    for (int32 i = 0; i < 3 && SkillPool.Num() > 0; ++i)
+    // 只在技能列表为空时才随机选择（避免重复刷新）
+    if (CurrentSkillOptions.Num() == 0)
     {
-        int32 RandomIndex;
-        do
-        {
-            RandomIndex = FMath::RandRange(0, SkillPool.Num() - 1);
-        } while (UsedIndices.Contains(RandomIndex) && UsedIndices.Num() < SkillPool.Num());
+        // 随机选择3个技能
+        TArray<int32> UsedIndices;
 
-        UsedIndices.Add(RandomIndex);
-        CurrentSkillOptions.Add(SkillPool[RandomIndex]);
+        for (int32 i = 0; i < 3 && SkillPool.Num() > 0; ++i)
+        {
+            int32 RandomIndex;
+            do
+            {
+                RandomIndex = FMath::RandRange(0, SkillPool.Num() - 1);
+            } while (UsedIndices.Contains(RandomIndex) && UsedIndices.Num() < SkillPool.Num());
+
+            UsedIndices.Add(RandomIndex);
+            CurrentSkillOptions.Add(SkillPool[RandomIndex]);
+        }
+
+        UE_LOG(LogTemp, Log, TEXT("GameMode: Generated %d skill options"), CurrentSkillOptions.Num());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("GameMode: Reusing existing %d skill options"), CurrentSkillOptions.Num());
     }
 
     // 加载技能选择界面
     UClass* WidgetClass = LoadClass<UUserWidget>(
         nullptr,
-        TEXT("/Game/UI/WBP_SkillSelection.WBP_SkillSelection_C")
+        TEXT("/Game/UI/WBP_SelectSkill.WBP_SelectSkill_C")
     );
 
     if (WidgetClass)
@@ -416,11 +476,13 @@ void AGridTacticsGameMode::ShowSkillSelection()
         if (Widget)
         {
             Widget->AddToViewport(999);  // 高优先级
-            UE_LOG(LogTemp, Log, TEXT("GameMode: Skill selection UI displayed"));
+            UE_LOG(LogTemp, Log, TEXT("GameMode: WBP_SelectSkill displayed"));
         }
     }
-
-    UE_LOG(LogTemp, Log, TEXT("GameMode: Showing skill selection (%d options)"), CurrentSkillOptions.Num());
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: Failed to load WBP_SelectSkill"));
+    }
 }
 
 void AGridTacticsGameMode::OnPlayerSelectSkill(USkillDataAsset* SelectedSkill)
@@ -435,18 +497,139 @@ void AGridTacticsGameMode::OnPlayerSelectSkill(USkillDataAsset* SelectedSkill)
     {
         if (SkillComp->AddSkill(SelectedSkill))
         {
+            // 技能槽未满，直接添加成功
             UE_LOG(LogTemp, Log, TEXT("GameMode: Player selected skill: %s"), 
                 *SelectedSkill->SkillName.ToString());
+
+            // 清空技能选项列表（下次敌人死亡时重新生成）
+            CurrentSkillOptions.Empty();
+
+            // 完成技能选择
+            OnSkillSelectionComplete();
         }
         else
         {
-            UE_LOG(LogTemp, Warning, TEXT("GameMode: Failed to add skill (slots full?)"));
-            // TODO: 显示替换界面
+            // 技能槽已满，显示替换界面
+            UE_LOG(LogTemp, Warning, TEXT("GameMode: Skill slots full, showing replacement UI"));
+            
+            // 保存待添加的技能
+            PendingNewSkill = SelectedSkill;
+            
+            // 显示替换界面（不调用 OnSkillSelectionComplete，保持暂停）
+            ShowSkillReplacement(SelectedSkill);
         }
     }
+}
 
-    // 完成技能选择
-    OnSkillSelectionComplete();
+// 显示技能替换界面
+void AGridTacticsGameMode::ShowSkillReplacement(USkillDataAsset* NewSkill)
+{
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        return;
+    }
+
+    // 确保游戏保持暂停状态
+    if (!PC->IsPaused())
+    {
+        PC->SetPause(true);
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: Re-pausing game for replacement UI"));
+    }
+    
+    PC->bShowMouseCursor = true;
+
+    // 加载 WBP_ReplaceSkill
+    UClass* WidgetClass = LoadClass<UUserWidget>(
+        nullptr,
+        TEXT("/Game/UI/WBP_ReplaceSkill.WBP_ReplaceSkill_C")
+    );
+
+    if (WidgetClass)
+    {
+        UUserWidget* Widget = CreateWidget<UUserWidget>(PC, WidgetClass);
+        if (Widget)
+        {
+            Widget->AddToViewport(1000);  // 更高优先级
+            UE_LOG(LogTemp, Log, TEXT("GameMode: WBP_ReplaceSkill displayed for skill: %s"),
+                *NewSkill->SkillName.ToString());
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: Failed to load WBP_ReplaceSkill"));
+    }
+}
+
+// 玩家确认替换技能
+void AGridTacticsGameMode::OnPlayerConfirmReplace(int32 SlotIndex)
+{
+    if (!PendingNewSkill || !PlayerCharacter)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: No pending skill to replace"));
+        return;
+    }
+
+    if (USkillComponent* SkillComp = PlayerCharacter->FindComponentByClass<USkillComponent>())
+    {
+        if (SkillComp->ReplaceSkill(SlotIndex, PendingNewSkill))
+        {
+            UE_LOG(LogTemp, Log, TEXT("GameMode: Replaced skill at slot %d with %s"),
+                SlotIndex, *PendingNewSkill->SkillName.ToString());
+
+            // 清空临时技能
+            PendingNewSkill = nullptr;
+
+            // 清空技能选项列表
+            CurrentSkillOptions.Empty();
+
+            // 完成技能选择
+            OnSkillSelectionComplete();
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("GameMode: Failed to replace skill at slot %d"), SlotIndex);
+        }
+    }
+}
+
+// 玩家取消替换
+void AGridTacticsGameMode::OnPlayerCancelReplace()
+{
+    UE_LOG(LogTemp, Log, TEXT("GameMode: Player cancelled skill replacement"));
+
+    // 清空临时技能
+    PendingNewSkill = nullptr;
+
+    // 修复：不重新生成技能选项，直接显示之前的选择界面
+    // CurrentSkillOptions 保持不变
+
+    // 重新显示技能选择界面（使用已有的技能选项）
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        return;
+    }
+
+    // 确保暂停状态
+    PC->SetPause(true);
+    PC->bShowMouseCursor = true;
+
+    // 加载 WBP_SelectSkill
+    UClass* WidgetClass = LoadClass<UUserWidget>(
+        nullptr,
+        TEXT("/Game/UI/WBP_SelectSkill.WBP_SelectSkill_C")
+    );
+
+    if (WidgetClass)
+    {
+        UUserWidget* Widget = CreateWidget<UUserWidget>(PC, WidgetClass);
+        if (Widget)
+        {
+            Widget->AddToViewport(999);
+            UE_LOG(LogTemp, Log, TEXT("GameMode: Re-showing WBP_SelectSkill with existing options"));
+        }
+    }
 }
 
 void AGridTacticsGameMode::OnSkillSelectionComplete()
@@ -466,7 +649,7 @@ void AGridTacticsGameMode::OnSkillSelectionComplete()
         PC->SetInputMode(InputMode);
     }
 
-    UE_LOG(LogTemp, Log, TEXT("GameMode: Skill selection complete"));
+    UE_LOG(LogTemp, Log, TEXT("GameMode: Skill selection complete, game unpaused"));
 }
 
 void AGridTacticsGameMode::CheckVictoryCondition()
@@ -475,6 +658,22 @@ void AGridTacticsGameMode::CheckVictoryCondition()
 
     UE_LOG(LogTemp, Log, TEXT("GameMode: VICTORY!"));
 
+    // 停止背景音乐并播放胜利音效
+    StopMusic(1.0f);
+
+    if (VictorySound)
+    {
+        FTimerHandle TimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(
+            TimerHandle,
+            [this]()
+            {
+                PlaySFX(VictorySound);
+            },
+            0.5f,
+            false
+        );
+    }
     // TODO: 显示胜利界面
 }
 
@@ -561,4 +760,176 @@ void AGridTacticsGameMode::RestartPlayer(AController* NewPlayer)
     }
 
     Super::RestartPlayer(NewPlayer);
+}
+
+
+
+
+
+
+// ========================================
+// 音频管理函数
+// ========================================
+
+void AGridTacticsGameMode::PlayMusic(USoundBase* Music, float FadeInTime)
+{
+    if (!Music)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("GameMode: Attempted to play null music"));
+        return;
+    }
+
+    // 如果已经在播放相同的音乐，跳过
+    if (CurrentMusic == Music && MusicAudioComponent && MusicAudioComponent->IsPlaying())
+    {
+        return;
+    }
+
+    // 停止当前音乐
+    if (MusicAudioComponent && MusicAudioComponent->IsPlaying())
+    {
+        MusicAudioComponent->Stop();
+    }
+
+    // 清理旧的 Timer
+    GetWorld()->GetTimerManager().ClearTimer(MusicFadeTimerHandle);
+
+    // 创建或复用 AudioComponent
+    if (!MusicAudioComponent)
+    {
+        MusicAudioComponent = NewObject<UAudioComponent>(this);
+        MusicAudioComponent->bAllowSpatialization = false;  // 2D 音乐
+        MusicAudioComponent->bIsUISound = true;  //不受暂停影响
+        MusicAudioComponent->RegisterComponent();
+    }
+
+    CurrentMusic = Music;
+    MusicAudioComponent->SetSound(Music);
+    MusicAudioComponent->SetVolumeMultiplier(0.0f);  // 从 0 开始淡入
+    MusicAudioComponent->Play();
+
+    // 设置淡入参数
+    if (FadeInTime > 0.0f)
+    {
+        bIsFadingIn = true;
+        MusicFadeProgress = 0.0f;
+        MusicFadeStartVolume = 0.0f;
+        MusicFadeTargetVolume = MusicVolume;
+        MusicFadeDuration = FadeInTime;
+
+        GetWorld()->GetTimerManager().SetTimer(
+            MusicFadeTimerHandle,
+            this,
+            &AGridTacticsGameMode::UpdateMusicFade,
+            0.05f,  // 每 50ms 更新一次
+            true
+        );
+    }
+    else
+    {
+        MusicAudioComponent->SetVolumeMultiplier(MusicVolume);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("GameMode: Playing music with %.2fs fade-in"), FadeInTime);
+}
+
+void AGridTacticsGameMode::StopMusic(float FadeOutTime)
+{
+    if (!MusicAudioComponent || !MusicAudioComponent->IsPlaying())
+    {
+        return;
+    }
+
+    GetWorld()->GetTimerManager().ClearTimer(MusicFadeTimerHandle);
+
+    if (FadeOutTime > 0.0f)
+    {
+        bIsFadingIn = false;
+        MusicFadeProgress = 0.0f;
+        MusicFadeStartVolume = MusicAudioComponent->VolumeMultiplier;
+        MusicFadeTargetVolume = 0.0f;
+        MusicFadeDuration = FadeOutTime;
+
+        GetWorld()->GetTimerManager().SetTimer(
+            MusicFadeTimerHandle,
+            this,
+            &AGridTacticsGameMode::UpdateMusicFade,
+            0.05f,
+            true
+        );
+    }
+    else
+    {
+        MusicAudioComponent->Stop();
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("GameMode: Stopping music with %.2fs fade-out"), FadeOutTime);
+}
+
+void AGridTacticsGameMode::UpdateMusicFade()
+{
+    if (!MusicAudioComponent)
+    {
+        GetWorld()->GetTimerManager().ClearTimer(MusicFadeTimerHandle);
+        return;
+    }
+
+    MusicFadeProgress += 0.05f;
+    float Alpha = FMath::Clamp(MusicFadeProgress / MusicFadeDuration, 0.0f, 1.0f);
+    float NewVolume = FMath::Lerp(MusicFadeStartVolume, MusicFadeTargetVolume, Alpha);
+
+    MusicAudioComponent->SetVolumeMultiplier(NewVolume);
+
+    if (Alpha >= 1.0f)
+    {
+        OnMusicFadeComplete();
+    }
+}
+
+void AGridTacticsGameMode::OnMusicFadeComplete()
+{
+    GetWorld()->GetTimerManager().ClearTimer(MusicFadeTimerHandle);
+
+    // 如果是淡出，停止播放
+    if (!bIsFadingIn && MusicAudioComponent)
+    {
+        MusicAudioComponent->Stop();
+    }
+}
+
+void AGridTacticsGameMode::PlaySFX(USoundBase* Sound)
+{
+    if (!Sound)
+    {
+        return;
+    }
+
+    // 使用 bIsUISound = true，使音效不受暂停影响
+    UGameplayStatics::PlaySound2D(
+        GetWorld(),
+        Sound,
+        SFXVolume,
+        1.0f,  // Pitch
+        0.0f,  // StartTime
+        nullptr,
+        nullptr,
+        true  // bIsUISound
+    );
+
+    UE_LOG(LogTemp, Log, TEXT("GameMode: Played SFX"));
+}
+
+void AGridTacticsGameMode::SetMusicVolume(float Volume)
+{
+    MusicVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
+
+    if (MusicAudioComponent && MusicAudioComponent->IsPlaying())
+    {
+        MusicAudioComponent->SetVolumeMultiplier(MusicVolume);
+    }
+}
+
+void AGridTacticsGameMode::SetSFXVolume(float Volume)
+{
+    SFXVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
 }

@@ -21,7 +21,7 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
 
     for (AActor* Target : AffectedActors)
     {
-        // ✅ 添加有效性检查
+        // 添加有效性检查
         if (!IsValid(Target))
         {
             UE_LOG(LogTemp, Warning, TEXT("  Skipping invalid/destroyed actor"));
