@@ -99,6 +99,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	bool IsSkillSlotsFull() const { return SkillSlots.Num() >= 5; }
 
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Skills")
+	int32 ReplacedSkillIndex;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
