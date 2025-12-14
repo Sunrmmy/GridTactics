@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "GridTacticsPlayerState.h"
@@ -8,7 +8,7 @@
 
 AGridTacticsPlayerState::AGridTacticsPlayerState()
 {
-	// PlayerStateµÄTickÄ¬ÈÏÊÇ¹Ø±ÕµÄ£¬ÎÒÃÇÈÃCharacterÀ´Çı¶¯¸üĞÂ
+	// PlayerStateçš„Tické»˜è®¤æ˜¯å…³é—­çš„ï¼Œæˆ‘ä»¬è®©Characteræ¥é©±åŠ¨æ›´æ–°
 	PrimaryActorTick.bCanEverTick = false;
 }
 
@@ -18,7 +18,7 @@ void AGridTacticsPlayerState::BeginPlay()
 
 }
 
-// ´ÓPawn»ñÈ¡AttributesComponent
+// ä»Pawnè·å–AttributesComponent
 UAttributesComponent* GetAttributesComponentFromPawn(const APawn* Pawn)
 {
 	if (!Pawn) return nullptr;
@@ -26,7 +26,7 @@ UAttributesComponent* GetAttributesComponentFromPawn(const APawn* Pawn)
 }
 
 
-// »ñÈ¡ÊôĞÔAttributesº¯ÊıµÄÊµÏÖ
+// è·å–å±æ€§Attributeså‡½æ•°çš„å®ç°
 float AGridTacticsPlayerState::GetHP() const
 {
 	if (UAttributesComponent* AttrComp = GetAttributesComponentFromPawn(GetPawn()))

@@ -363,7 +363,7 @@ void AGridTacticsGameMode::OnEnemyDied(AActor* Enemy)
     NotifyEnemyDefeated(EnemyChar);
 }
 
-// 保持不变
+// 每次击败敌人触发的逻辑
 void AGridTacticsGameMode::NotifyEnemyDefeated(ACharacter* Enemy)
 {
     if (CurrentPhase != EGamePhase::Combat)
@@ -386,22 +386,6 @@ void AGridTacticsGameMode::NotifyEnemyDefeated(ACharacter* Enemy)
     // 广播事件
     OnEnemyDefeated.Broadcast(Enemy);
 
-    // 延迟显示技能选择
-    if (!bWaitingForSkillSelection)
-    {
-        bWaitingForSkillSelection = true;
-
-        // 使用 Timer 延迟显示
-        FTimerHandle DelayTimerHandle;
-        GetWorld()->GetTimerManager().SetTimer(
-            DelayTimerHandle,
-            this,
-            &AGridTacticsGameMode::ShowSkillSelection,
-            1.5f,  // 延迟
-            false
-        );
-    }
-
     // 检查波次是否完成
     if (RemainingEnemies == 0)
     {
@@ -409,6 +393,7 @@ void AGridTacticsGameMode::NotifyEnemyDefeated(ACharacter* Enemy)
     }
 }
 
+// 修改：波次完成时触发技能选择（最后一波除外）
 void AGridTacticsGameMode::OnWaveComplete()
 {
     UE_LOG(LogTemp, Log, TEXT("GameMode: Wave %d complete"), CurrentWaveIndex + 1);
@@ -416,13 +401,30 @@ void AGridTacticsGameMode::OnWaveComplete()
     // 检查是否还有下一波
     if (CurrentWaveIndex + 1 < WaveConfigs.Num())
     {
-        // 开始下一波
-        CurrentWaveIndex++;
-        StartNextWave();
+        // 在开始下一波之前显示技能选择（非最后一波）
+        if (!bWaitingForSkillSelection)
+        {
+            bWaitingForSkillSelection = true;
+
+            // 延迟显示技能选择界面
+            FTimerHandle DelayTimerHandle;
+            GetWorld()->GetTimerManager().SetTimer(
+                DelayTimerHandle,
+                [this]()
+                {
+                    ShowSkillSelection();
+                },
+                1.5f,  // 延迟1.5秒显示
+                false
+            );
+        }
+
+        // 注意：不在这里调用 StartNextWave()
+        // 将在 OnSkillSelectionComplete() 中调用
     }
     else
     {
-        // 所有波次完成，胜利
+        // 所有波次完成，胜利（不显示技能选择）
         CheckVictoryCondition();
     }
 }
@@ -501,7 +503,7 @@ void AGridTacticsGameMode::OnPlayerSelectSkill(USkillDataAsset* SelectedSkill)
             UE_LOG(LogTemp, Log, TEXT("GameMode: Player selected skill: %s"), 
                 *SelectedSkill->SkillName.ToString());
 
-            // 清空技能选项列表（下次敌人死亡时重新生成）
+            // 清空技能选项列表（下次波次完成时重新生成）
             CurrentSkillOptions.Empty();
 
             // 完成技能选择
@@ -632,6 +634,7 @@ void AGridTacticsGameMode::OnPlayerCancelReplace()
     }
 }
 
+// 技能选择完成后继续下一波
 void AGridTacticsGameMode::OnSkillSelectionComplete()
 {
     bWaitingForSkillSelection = false;
@@ -650,6 +653,10 @@ void AGridTacticsGameMode::OnSkillSelectionComplete()
     }
 
     UE_LOG(LogTemp, Log, TEXT("GameMode: Skill selection complete, game unpaused"));
+
+    // 继续下一波
+    CurrentWaveIndex++;
+    StartNextWave();
 }
 
 void AGridTacticsGameMode::CheckVictoryCondition()
@@ -761,8 +768,6 @@ void AGridTacticsGameMode::RestartPlayer(AController* NewPlayer)
 
     Super::RestartPlayer(NewPlayer);
 }
-
-
 
 
 

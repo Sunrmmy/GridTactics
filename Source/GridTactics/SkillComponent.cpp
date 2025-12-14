@@ -324,17 +324,6 @@ bool USkillComponent::AddSkill(USkillDataAsset* NewSkillData)
         return false;
     }
 
-    //// 检查是否已经装备了这个技能
-    //for (const FSkillEntry& Entry : SkillSlots)
-    //{
-    //    if (Entry.SkillData == NewSkillData)
-    //    {
-    //        UE_LOG(LogTemp, Warning, TEXT("SkillComponent::AddSkill - Skill already equipped: %s"), 
-    //            *NewSkillData->SkillName.ToString());
-    //        return false;
-    //    }
-    //}
-
     // 创建技能实例
     FSkillEntry NewEntry;
     NewEntry.SkillData = NewSkillData;
@@ -350,11 +339,15 @@ bool USkillComponent::AddSkill(USkillDataAsset* NewSkillData)
     
     NewEntry.CooldownRemaining = 0.0f;
     
+    int32 NewSlotIndex = SkillSlots.Num();
     SkillSlots.Add(NewEntry);
 
     UE_LOG(LogTemp, Log, TEXT("SkillComponent::AddSkill - Added skill: %s (Slot %d)"), 
         *NewSkillData->SkillName.ToString(), 
-        SkillSlots.Num() - 1);
+        NewSlotIndex);
+    
+    // 广播技能添加事件
+    OnSkillAdded.Broadcast(NewSlotIndex);
     
     return true;
 }
@@ -400,8 +393,13 @@ bool USkillComponent::ReplaceSkill(int32 SlotIndex, USkillDataAsset* NewSkillDat
     
     NewEntry.CooldownRemaining = 0.0f;
     
-    // 替换技能
+    // 替换技能槽
     SkillSlots[SlotIndex] = NewEntry;
 
+    UE_LOG(LogTemp, Log, TEXT("SkillComponent::ReplaceSkill - Skill replaced successfully"));
+
+    // 广播技能替换事件
+    OnSkillReplaced.Broadcast(SlotIndex, NewSkillData);
+    
     return true;
 }

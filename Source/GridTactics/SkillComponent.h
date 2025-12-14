@@ -10,6 +10,11 @@ class USkillDataAsset;
 class UBaseSkill;
 class AHeroCharacter;
 
+// 技能变更委托
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillAdded, int32, SlotIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSkillReplaced, int32, SlotIndex, USkillDataAsset*, NewSkillData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillRemoved, int32, SlotIndex);
+
 // 定义技能组件自身的状态
 UENUM(BlueprintType)
 enum class ESkillState : uint8
@@ -18,6 +23,7 @@ enum class ESkillState : uint8
 	Aiming,
 	Casting
 };
+
 USTRUCT(BlueprintType)
 struct FSkillEntry
 {
@@ -39,12 +45,19 @@ class GRIDTACTICS_API USkillComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	USkillComponent();
 
-	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	// 技能变更事件
+	UPROPERTY(BlueprintAssignable, Category = "Skills|Events")
+	FOnSkillAdded OnSkillAdded;
+
+	UPROPERTY(BlueprintAssignable, Category = "Skills|Events")
+	FOnSkillReplaced OnSkillReplaced;
+
+	UPROPERTY(BlueprintAssignable, Category = "Skills|Events")
+	FOnSkillRemoved OnSkillRemoved;
 
 	// 尝试开始瞄准一个技能
 	UFUNCTION(BlueprintCallable, Category = "Skills")
@@ -56,10 +69,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Skills")
 	void CancelAiming();
 
-
 	// 根据技能实例获取其在技能插槽中的索引
 	int32 GetSkillIndex(const UBaseSkill* SkillInstance) const;
-
 
 	// 获取指定索引的技能数据资产（SkillIndex为技能在插槽中的索引）
 	UFUNCTION(BlueprintPure, Category = "Skills")
@@ -83,19 +94,19 @@ public:
 	// 设置瞄准目标格子（在 Tick 或鼠标移动时更新）
 	void SetAimingTargetGrid(FIntPoint TargetGrid) { AimingTargetGrid = TargetGrid; }
 
-	/** 新增：运行时添加技能 */
+	/** 运行时添加技能 */
 	UFUNCTION(BlueprintCallable, Category = "Skills")
 	bool AddSkill(USkillDataAsset* NewSkillData);
 
-	/** 新增：替换技能 */
+	/** 替换技能 */
 	UFUNCTION(BlueprintCallable, Category = "Skills")
 	bool ReplaceSkill(int32 SlotIndex, USkillDataAsset* NewSkillData);
 
-	/** 新增：获取当前技能数量 */
+	/** 获取当前技能数量 */
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	int32 GetSkillCount() const { return SkillSlots.Num(); }
 
-	/** 新增：检查技能是否已满 */
+	/** 检查技能是否已满 */
 	UFUNCTION(BlueprintPure, Category = "Skills")
 	bool IsSkillSlotsFull() const { return SkillSlots.Num() >= 5; }
 

@@ -489,8 +489,11 @@ void AHeroCharacter::PossessedBy(AController* NewController)
             PlayerHUD = CreateWidget<UHUDWidget>(PC, PlayerHUDClass);
             if (PlayerHUD)
             {
+                // 设置 HUD 的拥有者角色
+                PlayerHUD->SetOwnerCharacter(this);
+
                 PlayerHUD->AddToViewport();
-                UE_LOG(LogTemp, Log, TEXT("HeroCharacter: HUD created in PossessedBy"));
+                UE_LOG(LogTemp, Log, TEXT("HeroCharacter: HUD created and owner set in PossessedBy"));
             }
         }
     }
