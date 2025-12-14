@@ -3,7 +3,7 @@
 
 #include "GridTacticsPlayerState.h"
 #include "HeroCharacter.h"
-#include "GridMovementComponent.h"
+#include "GridTactics/GridMovement/GridMovementComponent.h"
 #include "AttributesComponent.h"
 
 AGridTacticsPlayerState::AGridTacticsPlayerState()

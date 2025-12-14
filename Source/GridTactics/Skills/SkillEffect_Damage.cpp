@@ -1,6 +1,6 @@
 ﻿#include "SkillEffect_Damage.h"
 #include "GridTactics/AttributesComponent.h"
-#include "GridTactics/GridManager.h"
+#include "GridTactics/GridMovement/GridManager.h"
 
 USkillEffect_Damage::USkillEffect_Damage()
 {

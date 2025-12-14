@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "GridMovementComponent.h"
-#include "AttributesComponent.h"
+#include "GridTactics/AttributesComponent.h"
 #include "GridCell.h"
 #include "GridManager.h"
 #include "GameFramework/Character.h"

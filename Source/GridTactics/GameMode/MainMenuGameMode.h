@@ -8,18 +8,19 @@
 
 class ULevelDataAsset;
 class USkillDataAsset;
+class UUserWidget; // 添加这行
 
 /**
  * 主菜单专用 GameMode
  * 管理关卡列表、技能图鉴等数据
  */
 UCLASS()
-class GRIDTACTICS_API AMenuGameMode : public AGameModeBase
+class GRIDTACTICS_API AMainMenuGameMode : public AGameModeBase
 {
     GENERATED_BODY()
 
 public:
-    AMenuGameMode();
+    AMainMenuGameMode();
 
     virtual void BeginPlay() override;
 
@@ -51,13 +52,13 @@ public:
     UFUNCTION(BlueprintPure, Category = "Skill Encyclopedia")
     TArray<USkillDataAsset*> GetAllSkills() const { return AllSkills; }
 
-    /** 按类型筛选技能 */
-    UFUNCTION(BlueprintCallable, Category = "Skill Encyclopedia")
-    TArray<USkillDataAsset*> GetSkillsByType(ESkillTargetType TargetType) const;
-
     // ========================================
     // UI 管理
     // ========================================
+
+    /** 主菜单 Widget 类 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    TSubclassOf<UUserWidget> MainMenuWidgetClass;
 
     /** 主菜单音乐 */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
@@ -74,4 +75,13 @@ public:
     /** 退出游戏 */
     UFUNCTION(BlueprintCallable, Category = "Game Flow")
     void QuitGame();
+
+protected:
+    /** 显示主菜单 */
+    void ShowMainMenu();
+
+private:
+    /** 缓存主菜单 Widget 实例 */
+    UPROPERTY()
+    TObjectPtr<UUserWidget> MainMenuWidget;
 };

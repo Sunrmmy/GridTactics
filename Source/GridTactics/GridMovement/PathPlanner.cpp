@@ -1,8 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "PathPlanner.h"
-#include "GridTactics/GridManager.h"
+#include "GridManager.h"
 
 FPathValidationResult UPathPlanner::PlanDashPath(
     AGridManager* GridManager,
@@ -24,13 +24,13 @@ FPathValidationResult UPathPlanner::PlanDashPath(
     }
 
     FIntPoint CurrentGrid = StartGrid;
-    Result.ValidPath.Add(CurrentGrid); // Æðµã
+    Result.ValidPath.Add(CurrentGrid); // èµ·ç‚¹
 
     for (int32 Step = 1; Step <= MaxDistance; ++Step)
     {
         FIntPoint NextGrid = CurrentGrid + Direction;
 
-        // 1. ±ß½ç¼ì²é
+        // 1. è¾¹ç•Œæ£€æŸ¥
         if (!GridManager->IsGridValid(NextGrid))
         {
             Result.BlockReason = EKnockbackBlockReason::OutOfBounds;
@@ -38,7 +38,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
             break;
         }
 
-        // 2. ¾²Ì¬ÕÏ°­Îï¼ì²é
+        // 2. é™æ€éšœç¢ç‰©æ£€æŸ¥
         if (!GridManager->IsGridWalkable(NextGrid))
         {
             Result.BlockReason = EKnockbackBlockReason::StaticObstacle;
@@ -46,13 +46,13 @@ FPathValidationResult UPathPlanner::PlanDashPath(
             break;
         }
 
-        // 3. ¶¯Ì¬½ÇÉ«¼ì²é
+        // 3. åŠ¨æ€è§’è‰²æ£€æŸ¥
         AActor* ActorAtGrid = GetActorAtGrid(GridManager, NextGrid, IgnoreActor);
         if (ActorAtGrid)
         {
             if (bCanCollide)
             {
-                // ÏÈÑéÖ¤»÷ÍËÂ·¾¶ÊÇ·ñÓÐÐ§
+                // å…ˆéªŒè¯å‡»é€€è·¯å¾„æ˜¯å¦æœ‰æ•ˆ
                 bool bKnockbackValid = ValidateKnockbackPath(
                     GridManager,
                     NextGrid,
@@ -61,7 +61,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
                     ActorAtGrid
                 );
 
-                // ¼ÇÂ¼Åö×²
+                // è®°å½•ç¢°æ’ž
                 FCollisionInfo CollisionInfo;
                 CollisionInfo.HitActor = ActorAtGrid;
                 CollisionInfo.CollisionGrid = NextGrid;
@@ -71,7 +71,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
 
                 if (bStopOnCollision)
                 {
-                    // Ö»ÓÐ»÷ÍËÓÐÐ§Ê±²ÅÒÆ¶¯µ½Åö×²µã
+                    // åªæœ‰å‡»é€€æœ‰æ•ˆæ—¶æ‰ç§»åŠ¨åˆ°ç¢°æ’žç‚¹
                     if (bKnockbackValid)
                     {
                         Result.ValidPath.Add(NextGrid);
@@ -79,7 +79,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
                         UE_LOG(LogTemp, Log, TEXT("  Collision with %s at %s, knockback valid"),
                             *ActorAtGrid->GetName(), *NextGrid.ToString());
                     }
-                    // ·ñÔòÍ£ÔÚÇ°Ò»¸ñ£¬²»»á¿¨ÔÚÒ»Æð
+                    // å¦åˆ™åœåœ¨å‰ä¸€æ ¼ï¼Œä¸ä¼šå¡åœ¨ä¸€èµ·
                     else
                     {
                         UE_LOG(LogTemp, Warning, TEXT("  Collision with %s at %s, knockback BLOCKED - stopping at previous grid"),
@@ -93,7 +93,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
             }
             else
             {
-                // ²»ÄÜÅö×²£¬Í£ÔÚÇ°Ò»¸ñ
+                // ä¸èƒ½ç¢°æ’žï¼Œåœåœ¨å‰ä¸€æ ¼
                 Result.BlockReason = EKnockbackBlockReason::AnotherActor;
                 Result.BlockedAtGrid = NextGrid;
                 break;
@@ -101,7 +101,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
         }
         else
         {
-            // ¿Õ¸ñ×Ó£¬Õý³£Ìí¼Ó
+            // ç©ºæ ¼å­ï¼Œæ­£å¸¸æ·»åŠ 
             Result.ValidPath.Add(NextGrid);
             CurrentGrid = NextGrid;
         }
@@ -111,7 +111,7 @@ FPathValidationResult UPathPlanner::PlanDashPath(
     return Result;
 }
 
-// ÑéÖ¤»÷ÍËÂ·¾¶ÊÇ·ñÓÐÐ§
+// éªŒè¯å‡»é€€è·¯å¾„æ˜¯å¦æœ‰æ•ˆ
 bool UPathPlanner::ValidateKnockbackPath(
     AGridManager* GridManager,
     FIntPoint StartGrid,
@@ -127,7 +127,7 @@ bool UPathPlanner::ValidateKnockbackPath(
         IgnoreActor
     );
 
-    // Ö»ÓÐ»÷ÍËÂ·¾¶ÍêÈ«ÓÐÐ§Ê±²Å·µ»Ø true
+    // åªæœ‰å‡»é€€è·¯å¾„å®Œå…¨æœ‰æ•ˆæ—¶æ‰è¿”å›ž true
     return KnockbackResult.bIsValid && KnockbackResult.ValidPath.Num() > 1;
 }
 
@@ -154,7 +154,7 @@ FPathValidationResult UPathPlanner::PlanKnockbackPath(
     {
         FIntPoint NextGrid = CurrentGrid + Direction;
 
-        // Óöµ½×èµ²Ê±£¬Í£ÔÚµ±Ç°ÓÐÐ§Î»ÖÃ
+        // é‡åˆ°é˜»æŒ¡æ—¶ï¼Œåœåœ¨å½“å‰æœ‰æ•ˆä½ç½®
         if (!GridManager->IsGridValid(NextGrid))
         {
             Result.BlockReason = EKnockbackBlockReason::OutOfBounds;
@@ -176,7 +176,7 @@ FPathValidationResult UPathPlanner::PlanKnockbackPath(
         AActor* ActorAtGrid = GetActorAtGrid(GridManager, NextGrid, IgnoreActor);
         if (ActorAtGrid)
         {
-            // »÷ÍËÂ·¾¶ÉÏÓÐÆäËû½ÇÉ«
+            // å‡»é€€è·¯å¾„ä¸Šæœ‰å…¶ä»–è§’è‰²
             FCollisionInfo CollisionInfo;
             CollisionInfo.HitActor = ActorAtGrid;
             CollisionInfo.CollisionGrid = NextGrid;
@@ -194,7 +194,7 @@ FPathValidationResult UPathPlanner::PlanKnockbackPath(
         CurrentGrid = NextGrid;
     }
 
-    // Ö»ÒªÒÆ¶¯ÁËÖÁÉÙÒ»¸ñ£¬¾ÍÈÏÎª»÷ÍË³É¹¦
+    // åªè¦ç§»åŠ¨äº†è‡³å°‘ä¸€æ ¼ï¼Œå°±è®¤ä¸ºå‡»é€€æˆåŠŸ
     if (Result.ValidPath.Num() > 1)
     {
         Result.bIsValid = true;
@@ -203,7 +203,7 @@ FPathValidationResult UPathPlanner::PlanKnockbackPath(
     }
     else
     {
-        // ÍêÈ«Ã»ÓÐÒÆ¶¯£¬²ÅËãÊ§°Ü
+        // å®Œå…¨æ²¡æœ‰ç§»åŠ¨ï¼Œæ‰ç®—å¤±è´¥
         Result.bIsValid = false;
         UE_LOG(LogTemp, Warning, TEXT("    Knockback FAILED: Unable to move at all"));
     }
@@ -228,7 +228,7 @@ FPathValidationResult UPathPlanner::PlanTeleportPath(
 
     Result.ValidPath.Add(StartGrid);
 
-    // ´«ËÍÖ»¼ì²éÄ¿±êµã
+    // ä¼ é€åªæ£€æŸ¥ç›®æ ‡ç‚¹
     if (!GridManager->IsGridValid(TargetGrid))
     {
         Result.BlockReason = EKnockbackBlockReason::OutOfBounds;

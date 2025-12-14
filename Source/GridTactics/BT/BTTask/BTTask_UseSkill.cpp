@@ -1,10 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "BTTask_UseSkill.h"
 #include "AIController.h"
-#include "GridTactics//EnemyCharacter.h"
-#include "GridTactics//SkillComponent.h"
+#include "GridTactics/EnemyCharacter.h"
+#include "GridTactics/Skills/SkillComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTTask_UseSkill::UBTTask_UseSkill()
@@ -23,7 +23,7 @@ EBTNodeResult::Type UBTTask_UseSkill::ExecuteTask(UBehaviorTreeComponent& OwnerC
     USkillComponent* SkillComp = EnemyChar->GetSkillComponent();
     if (SkillComp)
     {
-        // ÉèÖÃ³¯Ïò£ºÈÃAI³¯ÏòÄ¿±êÍæ¼Ò
+        // è®¾ç½®æœå‘ï¼šè®©AIæœå‘ç›®æ ‡ç©å®¶
         AActor* TargetPlayer = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject("TargetPlayer"));
         if (TargetPlayer)
         {
@@ -31,7 +31,7 @@ EBTNodeResult::Type UBTTask_UseSkill::ExecuteTask(UBehaviorTreeComponent& OwnerC
             EnemyChar->SetActorRotation(DirectionToTarget.Rotation());
         }
 
-        // ³¢ÊÔÊ¹ÓÃ¼¼ÄÜ (ÕâÀï¼ò»¯ÎªÖ±½Ó¼¤»î£¬Äú¿ÉÒÔÀ©Õ¹ÎªÏÈÃé×¼ÔÙÈ·ÈÏ)
+        // å°è¯•ä½¿ç”¨æŠ€èƒ½ (è¿™é‡Œç®€åŒ–ä¸ºç›´æ¥æ¿€æ´»ï¼Œæ‚¨å¯ä»¥æ‰©å±•ä¸ºå…ˆç„å‡†å†ç¡®è®¤)
         //if (SkillComp->TryStartAiming(SkillIndex))
         //{
         //    SkillComp->TryConfirmSkill();

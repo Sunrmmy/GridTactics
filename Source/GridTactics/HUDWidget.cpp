@@ -5,8 +5,8 @@
 #include "GameFramework/PlayerState.h"
 #include "HeroCharacter.h"
 #include "AttributesComponent.h"
-#include "SkillComponent.h"
-#include "SkillDataAsset.h"
+#include "GridTactics/Skills/SkillComponent.h"
+#include "GridTactics/Skills/SkillDataAsset.h"
 #include "GridTacticsPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 

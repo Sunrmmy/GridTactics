@@ -3,7 +3,7 @@
 
 #include "GridManager.h"
 #include "GridMovementComponent.h"
-#include "AttributesComponent.h"
+#include "GridTactics/AttributesComponent.h"
 #include "GridCell.h"
 #include "DisplacementTypes.h"
 #include "PathPlanner.h"

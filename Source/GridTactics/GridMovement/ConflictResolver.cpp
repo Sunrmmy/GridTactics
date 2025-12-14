@@ -1,9 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "ConflictResolver.h"
 #include "PathPlanner.h"
-#include "GridTactics/GridManager.h"
+#include "GridManager.h"
 
 void UConflictResolver::ResolveAllConflicts(
     TArray<FGridDisplacementRequest>& Requests,
@@ -11,16 +11,16 @@ void UConflictResolver::ResolveAllConflicts(
 {
     OutGeneratedKnockbacks.Empty();
 
-    // µÚ1²½£º¼ì²âÖÕµã³åÍ»
+    // ç¬¬1æ­¥ï¼šæ£€æµ‹ç»ˆç‚¹å†²çª
     TArray<FConflictInfo> Conflicts = DetectEndPointConflicts(Requests);
 
-    // µÚ2²½£º½â¾ö³åÍ»
+    // ç¬¬2æ­¥ï¼šè§£å†³å†²çª
     for (const FConflictInfo& Conflict : Conflicts)
     {
         ResolveSingleConflict(Requests, Conflict);
     }
 
-    // µÚ3²½£ºÉú³É»÷ÍËÇëÇó
+    // ç¬¬3æ­¥ï¼šç”Ÿæˆå‡»é€€è¯·æ±‚
     GenerateKnockbackRequests(Requests, OutGeneratedKnockbacks);
 
     UE_LOG(LogTemp, Log, TEXT("ConflictResolver: Resolved %d conflicts, generated %d knockbacks"),
@@ -33,7 +33,7 @@ TArray<FConflictInfo> UConflictResolver::DetectEndPointConflicts(
     TArray<FConflictInfo> Conflicts;
     TMap<FIntPoint, TArray<int32>> EndPointMap;
 
-    // ¹¹½¨ÖÕµã -> ÇëÇóË÷ÒıµÄÓ³Éä
+    // æ„å»ºç»ˆç‚¹ -> è¯·æ±‚ç´¢å¼•çš„æ˜ å°„
     for (int32 i = 0; i < Requests.Num(); ++i)
     {
         const FGridDisplacementRequest& Request = Requests[i];
@@ -43,7 +43,7 @@ TArray<FConflictInfo> UConflictResolver::DetectEndPointConflicts(
         }
     }
 
-    // ¼ì²â³åÍ»
+    // æ£€æµ‹å†²çª
     for (const auto& Pair : EndPointMap)
     {
         if (Pair.Value.Num() > 1)
@@ -68,13 +68,13 @@ void UConflictResolver::ResolveSingleConflict(
 {
     if (Conflict.ConflictingRequestIndices.Num() < 2) return;
 
-    // °´ÓÅÏÈ¼¶ÅÅĞò£¨¸ßµ½µÍ£©
+    // æŒ‰ä¼˜å…ˆçº§æ’åºï¼ˆé«˜åˆ°ä½ï¼‰
     TArray<int32> SortedIndices = Conflict.ConflictingRequestIndices;
     SortedIndices.Sort([&Requests](int32 A, int32 B) {
         return static_cast<uint8>(Requests[A].Priority) > static_cast<uint8>(Requests[B].Priority);
         });
 
-    // ±£Áô×î¸ßÓÅÏÈ¼¶µÄÇëÇó£¬È¡ÏûÆäËûÇëÇó
+    // ä¿ç•™æœ€é«˜ä¼˜å…ˆçº§çš„è¯·æ±‚ï¼Œå–æ¶ˆå…¶ä»–è¯·æ±‚
     int32 WinnerIndex = SortedIndices[0];
     FGridDisplacementRequest& Winner = Requests[WinnerIndex];
 
@@ -88,7 +88,7 @@ void UConflictResolver::ResolveSingleConflict(
             static_cast<uint8>(Loser.Priority),
             static_cast<uint8>(Winner.Priority));
 
-        // È¡ÏûÇëÇó£ºÖØÖÃÎªÆğµã
+        // å–æ¶ˆè¯·æ±‚ï¼šé‡ç½®ä¸ºèµ·ç‚¹
         Loser.ActualEndGrid = Loser.StartGrid;
         Loser.Path.Empty();
         Loser.Path.Add(Loser.StartGrid);
@@ -111,7 +111,7 @@ void UConflictResolver::GenerateKnockbackRequests(
         if (!Request.bCanCollideWithActors || Request.KnockbackDistance <= 0)
             continue;
 
-        // ÎªÃ¿¸öÅö×²Éú³É»÷ÍË
+        // ä¸ºæ¯ä¸ªç¢°æ’ç”Ÿæˆå‡»é€€
         for (const FCollisionInfo& Collision : Request.CollisionResults)
         {
             if (!Collision.HitActor) continue;

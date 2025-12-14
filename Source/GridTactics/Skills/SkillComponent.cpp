@@ -3,10 +3,10 @@
 
 #include "SkillComponent.h"
 #include "SkillDataAsset.h"
-#include "Skills/SkillEffect.h"
-#include "GridManager.h"
+#include "SkillEffect.h"
+#include "GridTactics/GridMovement/GridManager.h"
 #include "BaseSkill.h"
-#include "HeroCharacter.h"
+#include "GridTactics/HeroCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 

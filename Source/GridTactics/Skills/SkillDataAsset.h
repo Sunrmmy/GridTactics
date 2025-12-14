@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "GridTacticsPlayerState.h"
+#include "GridTactics/GridTacticsPlayerState.h"
 #include "SkillDataAsset.generated.h"
 
 // 技能目标类型
@@ -37,6 +37,10 @@ public:
 	// --- 技能基础信息 ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Info")
 	FText SkillName;
+
+	// 技能描述（支持多行文本）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Info", meta = (MultiLine = true))
+	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Info")
 	TObjectPtr<UTexture2D> SkillIcon;

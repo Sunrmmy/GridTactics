@@ -1,25 +1,25 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "BTTask_MoveToGrid.h"
 #include "AIController.h"
 #include "GridTactics/EnemyCharacter.h"
-#include "GridTactics/GridMovementComponent.h"
+#include "GridTactics/GridMovement/GridMovementComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Actor.h"
 
 UBTTask_MoveToGrid::UBTTask_MoveToGrid()
 {
-	// ÎªÈÎÎñ½ÚµãÔÚĞĞÎªÊ÷±à¼­Æ÷ÖĞÉèÖÃÒ»¸öÒ×ÓÚÀí½âµÄÃû³Æ
+	// ä¸ºä»»åŠ¡èŠ‚ç‚¹åœ¨è¡Œä¸ºæ ‘ç¼–è¾‘å™¨ä¸­è®¾ç½®ä¸€ä¸ªæ˜“äºç†è§£çš„åç§°
 	NodeName = "Move One Step To Target";
 
-	// ¸æËßĞĞÎªÊ÷Õâ¸öÈÎÎñÒªÃ¿Ö¡µ÷ÓÃTickTask
+	// å‘Šè¯‰è¡Œä¸ºæ ‘è¿™ä¸ªä»»åŠ¡è¦æ¯å¸§è°ƒç”¨TickTask
 	bNotifyTick = true;
 }
 
 EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	// »ñÈ¡AI¿ØÖÆÆ÷ºÍËü¿ØÖÆµÄPawn
+	// è·å–AIæ§åˆ¶å™¨å’Œå®ƒæ§åˆ¶çš„Pawn
 	AAIController* AIController = OwnerComp.GetAIOwner();
 	if (!AIController)
 	{
@@ -34,7 +34,7 @@ EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Failed;
 	}
 
-	// ´ÓPawn»ñÈ¡GridMovementComponent
+	// ä»Pawnè·å–GridMovementComponent
 	UGridMovementComponent* GridMovementComp = EnemyChar->GetGridMovementComponent();
 	if (!GridMovementComp)
 	{
@@ -42,28 +42,28 @@ EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Failed;
 	}
 
-	// Èç¹û½ÇÉ«ÒÑ¾­ÔÚÒÆ¶¯£¬ÔòÈÏÎªÖ®Ç°µÄÒÆ¶¯ÈÎÎñÈÔÔÚ½øĞĞÖĞ
+	// å¦‚æœè§’è‰²å·²ç»åœ¨ç§»åŠ¨ï¼Œåˆ™è®¤ä¸ºä¹‹å‰çš„ç§»åŠ¨ä»»åŠ¡ä»åœ¨è¿›è¡Œä¸­
 	if (GridMovementComp->IsMoving())
 	{
 		UE_LOG(LogTemp, Log, TEXT("BTTask_MoveToGrid: Already moving, returning InProgress."));
 		return EBTNodeResult::InProgress;
 	}
 
-	// ´ÓºÚ°å»ñÈ¡Ä¿±êActor
+	// ä»é»‘æ¿è·å–ç›®æ ‡Actor
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (!BlackboardComp) return EBTNodeResult::Failed;
 
 	FVector TargetLocation;
 	bool bHasValidTarget = false;
 
-	// 1. ÓÅÏÈ³¢ÊÔ´Ó TargetLocationKey »ñÈ¡Ä¿±êÎ»ÖÃ
+	// 1. ä¼˜å…ˆå°è¯•ä» TargetLocationKey è·å–ç›®æ ‡ä½ç½®
 	if (TargetLocationKey.IsSet() && BlackboardComp->IsVectorValueSet(TargetLocationKey.SelectedKeyName))
 	{
 		TargetLocation = BlackboardComp->GetValueAsVector(TargetLocationKey.SelectedKeyName);
 		bHasValidTarget = true;
 	}
 
-	// 2. Èç¹ûÃ»ÓĞÓĞĞ§µÄÄ¿±êÎ»ÖÃ£¬ÔÙ³¢ÊÔ´Ó TargetActorKey »ñÈ¡
+	// 2. å¦‚æœæ²¡æœ‰æœ‰æ•ˆçš„ç›®æ ‡ä½ç½®ï¼Œå†å°è¯•ä» TargetActorKey è·å–
 	if (!bHasValidTarget && TargetActorKey.IsSet())
 	{
 		AActor* TargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetActorKey.SelectedKeyName));
@@ -82,10 +82,10 @@ EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& Owne
 
 	const FVector EnemyLocation = EnemyChar->GetActorLocation();
 
-	// Èç¹ûAIÒÑ¾­·Ç³£½Ó½üÄ¿±êµã£¬ÔòÈÏÎªÈÎÎñ³É¹¦
+	// å¦‚æœAIå·²ç»éå¸¸æ¥è¿‘ç›®æ ‡ç‚¹ï¼Œåˆ™è®¤ä¸ºä»»åŠ¡æˆåŠŸ
 	if (FVector::DistSquared(EnemyLocation, TargetLocation) < 100.f)
 	{
-		// Èç¹ûÊÇÑ²ÂßÒÆ¶¯£¬µ½´ïºóÇå¿ÕÄ¿±êµã£¬ÒÔ±ãÏÂ´ÎÖØĞÂÑ°ÕÒ
+		// å¦‚æœæ˜¯å·¡é€»ç§»åŠ¨ï¼Œåˆ°è¾¾åæ¸…ç©ºç›®æ ‡ç‚¹ï¼Œä»¥ä¾¿ä¸‹æ¬¡é‡æ–°å¯»æ‰¾
 		if (TargetLocationKey.IsSet())
 		{
 			BlackboardComp->ClearValue(TargetLocationKey.SelectedKeyName);
@@ -93,29 +93,29 @@ EBTNodeResult::Type UBTTask_MoveToGrid::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Succeeded;
 	}
 
-	// Ê¹ÓÃÍ³Ò»µÄ TargetLocation À´¼ÆËã·½Ïò
+	// ä½¿ç”¨ç»Ÿä¸€çš„ TargetLocation æ¥è®¡ç®—æ–¹å‘
 	FVector DirectionToTarget = (TargetLocation - EnemyLocation).GetSafeNormal();
 
 	int32 DeltaX = 0;
 	int32 DeltaY = 0;
 
-	// ËÄ·½ÏòÀëÉ¢»¯Âß¼­
+	// å››æ–¹å‘ç¦»æ•£åŒ–é€»è¾‘
 		if (FMath::Abs(DirectionToTarget.X) > FMath::Abs(DirectionToTarget.Y))
 		{
-			// XÖáÎªÖ÷µ¼·½Ïò
+			// Xè½´ä¸ºä¸»å¯¼æ–¹å‘
 			DeltaX = (DirectionToTarget.X > 0) ? 1 : -1;
-			DeltaY = 0; // Ç¿ÖÆYÖáÎª0
+			DeltaY = 0; // å¼ºåˆ¶Yè½´ä¸º0
 		}
 		else
 		{
-			// YÖáÎªÖ÷µ¼·½Ïò£¨»òÓëXÖáÏàµÈ£©
+			// Yè½´ä¸ºä¸»å¯¼æ–¹å‘ï¼ˆæˆ–ä¸Xè½´ç›¸ç­‰ï¼‰
 			DeltaY = (DirectionToTarget.Y > 0) ? 1 : -1;
-			DeltaX = 0; // Ç¿ÖÆXÖáÎª0
+			DeltaX = 0; // å¼ºåˆ¶Xè½´ä¸º0
 		}
 
 	if (DeltaX == 0 && DeltaY == 0)
 	{
-		// Èç¹ûÄ¿±ê¾ÍÔÚµ±Ç°¸ñ×ÓÉÏ£¬µ«¾àÀë¼ì²éÃ»Í¨¹ı£¨¿ÉÄÜÔÚ¸ñ×Ó±ßÔµ£©£¬Ò²ÊÓÎª³É¹¦
+		// å¦‚æœç›®æ ‡å°±åœ¨å½“å‰æ ¼å­ä¸Šï¼Œä½†è·ç¦»æ£€æŸ¥æ²¡é€šè¿‡ï¼ˆå¯èƒ½åœ¨æ ¼å­è¾¹ç¼˜ï¼‰ï¼Œä¹Ÿè§†ä¸ºæˆåŠŸ
 		return EBTNodeResult::Succeeded;
 	}
 
@@ -159,12 +159,12 @@ void UBTTask_MoveToGrid::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		return;
 	}
 
-	// Ã¿Ö¡¼ì²éÒÆ¶¯×é¼şÊÇ·ñ»¹ÔÚÒÆ¶¯
+	// æ¯å¸§æ£€æŸ¥ç§»åŠ¨ç»„ä»¶æ˜¯å¦è¿˜åœ¨ç§»åŠ¨
 	if (!GridMovementComp->IsMoving())
 	{
 		UE_LOG(LogTemp, Log, TEXT("BTTask_MoveToGrid (Tick): Movement finished. Finishing as Succeeded."));
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);		// Èç¹ûÒÆ¶¯ÒÑ¾­Í£Ö¹£¬ËµÃ÷ÈÎÎñÍê³É£¬Í¨ÖªĞĞÎªÊ÷ÈÎÎñ³É¹¦
-	}	// Èç¹ûÈÔÔÚÒÆ¶¯£¬Ôò²»Ö´ĞĞÈÎºÎ²Ù×÷£¬µÈ´ıÏÂÒ»Ö¡Tick
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);		// å¦‚æœç§»åŠ¨å·²ç»åœæ­¢ï¼Œè¯´æ˜ä»»åŠ¡å®Œæˆï¼Œé€šçŸ¥è¡Œä¸ºæ ‘ä»»åŠ¡æˆåŠŸ
+	}	// å¦‚æœä»åœ¨ç§»åŠ¨ï¼Œåˆ™ä¸æ‰§è¡Œä»»ä½•æ“ä½œï¼Œç­‰å¾…ä¸‹ä¸€å¸§Tick
 }
 
 EBTNodeResult::Type UBTTask_MoveToGrid::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

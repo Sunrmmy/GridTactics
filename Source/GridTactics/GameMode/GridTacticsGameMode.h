@@ -224,6 +224,7 @@ protected:
     virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
     virtual APawn* SpawnDefaultPawnFor_Implementation(AController* NewPlayer, AActor* StartSpot) override;
     virtual void RestartPlayer(AController* NewPlayer) override;
+
 private:
     /** 当前波次生成的敌人列表 */
     UPROPERTY()

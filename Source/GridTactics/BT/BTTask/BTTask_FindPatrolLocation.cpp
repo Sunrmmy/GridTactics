@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "BTTask_FindPatrolLocation.h"
@@ -6,7 +6,7 @@
 #include "NavigationSystem.h"
 #include "AIController.h"
 #include "GridTactics/EnemyCharacter.h"
-#include "GridTactics/GridMovementComponent.h"
+#include "GridTactics/GridMovement/GridMovementComponent.h"
 
 UBTTask_FindPatrolLocation::UBTTask_FindPatrolLocation()
 {
@@ -21,24 +21,24 @@ EBTNodeResult::Type UBTTask_FindPatrolLocation::ExecuteTask(UBehaviorTreeCompone
 	AEnemyCharacter* EnemyChar = Cast<AEnemyCharacter>(AIController->GetPawn());
 	if (!EnemyChar) return EBTNodeResult::Failed;
 
-	// »ñÈ¡GridMovementComponentÒÔÊ¹ÓÃÆä×ø±ê×ª»»¹¦ÄÜ
+	// èŽ·å–GridMovementComponentä»¥ä½¿ç”¨å…¶åæ ‡è½¬æ¢åŠŸèƒ½
 	UGridMovementComponent* GridMovementComp = EnemyChar->GetGridMovementComponent();
 	if (!GridMovementComp) return EBTNodeResult::Failed;
 
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (!BlackboardComp) return EBTNodeResult::Failed;
 
-	// »ñÈ¡Ñ²ÂßÖÐÐÄµã
+	// èŽ·å–å·¡é€»ä¸­å¿ƒç‚¹
 	FVector PatrolCenter = BlackboardComp->GetValueAsVector(PatrolCenterKey.SelectedKeyName);
 
-	// ÔÚµ¼º½ÏµÍ³ÉÏ£¬Î§ÈÆÑ²ÂßÖÐÐÄµãÑ°ÕÒÒ»¸öËæ»úµÄ¿É´ïÎ»ÖÃ
+	// åœ¨å¯¼èˆªç³»ç»Ÿä¸Šï¼Œå›´ç»•å·¡é€»ä¸­å¿ƒç‚¹å¯»æ‰¾ä¸€ä¸ªéšæœºçš„å¯è¾¾ä½ç½®
 	FNavLocation RandomPoint;
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
 	if (NavSys && NavSys->GetRandomReachablePointInRadius(PatrolCenter, PatrolRadius, RandomPoint))
 	{
 		int32 GridX, GridY;
-		GridMovementComp->WorldToGrid(RandomPoint.Location, GridX, GridY);	// ½«Á¬ÐøµÄÊÀ½ç×ø±ê×ª»»ÎªÍø¸ñ×ø±ê
-		// ½«Íø¸ñ×ø±ê×ª»»»ØÎ»ÖÃ¶ÔÆëµ½Íø¸ñµÄÊÀ½ç×ø±ê
+		GridMovementComp->WorldToGrid(RandomPoint.Location, GridX, GridY);	// å°†è¿žç»­çš„ä¸–ç•Œåæ ‡è½¬æ¢ä¸ºç½‘æ ¼åæ ‡
+		// å°†ç½‘æ ¼åæ ‡è½¬æ¢å›žä½ç½®å¯¹é½åˆ°ç½‘æ ¼çš„ä¸–ç•Œåæ ‡
 		FVector SnappedLocation = GridMovementComp->GridToWorld(GridX, GridY);
 
 		BlackboardComp->SetValueAsVector(PatrolLocationKey.SelectedKeyName, SnappedLocation);
@@ -47,6 +47,6 @@ EBTNodeResult::Type UBTTask_FindPatrolLocation::ExecuteTask(UBehaviorTreeCompone
 		return EBTNodeResult::Succeeded;
 	}
 
-	// Ã»ÕÒµ½£¬ÈÎÎñÊ§°Ü
+	// æ²¡æ‰¾åˆ°ï¼Œä»»åŠ¡å¤±è´¥
 	return EBTNodeResult::Failed;
 }

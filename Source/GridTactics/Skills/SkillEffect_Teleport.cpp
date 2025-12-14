@@ -1,8 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SkillEffect_Teleport.h"
-#include "GridTactics/GridManager.h"
-#include "GridTactics/GridMovementComponent.h"
+#include "GridTactics/GridMovement/GridManager.h"
+#include "GridTactics/GridMovement/GridMovementComponent.h"
 #include "GameFramework/Character.h"
 
 USkillEffect_Teleport::USkillEffect_Teleport()

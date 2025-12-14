@@ -4,9 +4,9 @@
 #include "GridTacticsGameMode.h"
 #include "GridTactics/GridTacticsPlayerController.h"
 #include "GridTactics/HeroCharacter.h"
-#include "GridTactics/GridManager.h"
-#include "GridTactics/SkillComponent.h"
-#include "GridTactics/SkillDataAsset.h"
+#include "GridTactics/GridMovement/GridManager.h"
+#include "GridTactics/Skills/SkillComponent.h"
+#include "GridTactics/Skills/SkillDataAsset.h"
 #include "GridTactics/AttributesComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -15,6 +15,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/AudioComponent.h"
+#include "GridTactics/GridTacticsGameInstance.h"
+#include "GridTactics/MainMenu/LevelDataAsset.h"
 
 AGridTacticsGameMode::AGridTacticsGameMode()
 {
@@ -469,7 +471,7 @@ void AGridTacticsGameMode::ShowSkillSelection()
     // 加载技能选择界面
     UClass* WidgetClass = LoadClass<UUserWidget>(
         nullptr,
-        TEXT("/Game/UI/WBP_SelectSkill.WBP_SelectSkill_C")
+        TEXT("/Game/UI/Playing/WBP_SelectSkill.WBP_SelectSkill_C")
     );
 
     if (WidgetClass)
@@ -544,7 +546,7 @@ void AGridTacticsGameMode::ShowSkillReplacement(USkillDataAsset* NewSkill)
     // 加载 WBP_ReplaceSkill
     UClass* WidgetClass = LoadClass<UUserWidget>(
         nullptr,
-        TEXT("/Game/UI/WBP_ReplaceSkill.WBP_ReplaceSkill_C")
+        TEXT("/Game/UI/Playing/WBP_ReplaceSkill.WBP_ReplaceSkill_C")
     );
 
     if (WidgetClass)
@@ -620,7 +622,7 @@ void AGridTacticsGameMode::OnPlayerCancelReplace()
     // 加载 WBP_SelectSkill
     UClass* WidgetClass = LoadClass<UUserWidget>(
         nullptr,
-        TEXT("/Game/UI/WBP_SelectSkill.WBP_SelectSkill_C")
+        TEXT("/Game/UI/Playing/WBP_SelectSkill.WBP_SelectSkill_C")
     );
 
     if (WidgetClass)
@@ -701,7 +703,7 @@ void AGridTacticsGameMode::ShowPreparationUI()
     // 使用 LoadClass 动态加载蓝图类
     UClass* WidgetClass = LoadClass<UUserWidget>(
         nullptr,
-        TEXT("/Game/UI/WBP_Preparation.WBP_Preparation_C")
+        TEXT("/Game/UI/Playing/WBP_Preparation.WBP_Preparation_C")
     );
 
     if (WidgetClass)
@@ -719,7 +721,7 @@ void AGridTacticsGameMode::ShowPreparationUI()
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameMode: WBP_Preparation blueprint not found at /Game/UI/WBP_Preparation"));
+        UE_LOG(LogTemp, Error, TEXT("GameMode: WBP_Preparation blueprint not found at /Game/UI/Playing/WBP_Preparation"));
     }
 }
 

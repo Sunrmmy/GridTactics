@@ -1,8 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "SkillEffect_Dash.h"
-#include "GridTactics/GridManager.h"
-#include "GridTactics/GridMovementComponent.h"
+#include "GridTactics/GridMovement/GridManager.h"
+#include "GridTactics/GridMovement/GridMovementComponent.h"
 #include "GridTactics/AttributesComponent.h"
 #include "Kismet/GameplayStatics.h"
 

@@ -2,8 +2,8 @@
 
 
 #include "EnemyCharacter.h"
-#include "GridMovementComponent.h"
-#include "SkillComponent.h"
+#include "GridTactics/GridMovement/GridMovementComponent.h"
+#include "GridTactics/Skills/SkillComponent.h"
 #include "AttributesComponent.h"
 #include "AttributesBar.h"
 #include "EnemyAIController.h"
