@@ -133,7 +133,7 @@ private:
 	void OnCastDelayFinished();
 
 	UPROPERTY()
-	TObjectPtr<AHeroCharacter> OwnerCharacter;
+	TObjectPtr<ACharacter> OwnerCharacter;
 
 	// 技能状态变量
 	ESkillState CurrentState = ESkillState::Idle;

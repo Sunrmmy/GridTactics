@@ -7,8 +7,10 @@
 #include "GridTactics/GridMovement/GridManager.h"
 #include "BaseSkill.h"
 #include "GridTactics/HeroCharacter.h"
+#include "GridTactics/EnemyCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "GameFramework/Character.h"
 
 // Sets default values for this component's properties
 USkillComponent::USkillComponent()
@@ -25,22 +27,61 @@ void USkillComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	OwnerCharacter = Cast<AHeroCharacter>(GetOwner());
-	if (!OwnerCharacter) return;
+	// 改为使用基类 ACharacter
+	OwnerCharacter = Cast<ACharacter>(GetOwner());
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("SkillComponent: Owner is not a Character! Component on: %s"), 
+			*GetOwner()->GetName());
+		return;
+	}
 
-    // 基于数据资产，实例化技能逻辑对象
-    for (const USkillDataAsset* DataAsset : EquippedSkillsData)
-    {
-        if (DataAsset && DataAsset->SkillLogicClass)
-        {
-            FSkillEntry NewEntry;
-            NewEntry.SkillData = DataAsset;
-            NewEntry.SkillInstance = NewObject<UBaseSkill>(this, DataAsset->SkillLogicClass);
-            NewEntry.SkillInstance->Initialize(OwnerCharacter, DataAsset);
-            SkillSlots.Add(NewEntry);
-        }
-    }
-	
+	UE_LOG(LogTemp, Warning, TEXT("SkillComponent: BeginPlay on %s (Owner: %s)"), 
+		*GetName(), *OwnerCharacter->GetName());
+
+	// 检查 EquippedSkillsData
+	if (EquippedSkillsData.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SkillComponent: EquippedSkillsData is EMPTY! No skills to initialize."));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("SkillComponent: Found %d skills in EquippedSkillsData"), 
+			EquippedSkillsData.Num());
+	}
+
+	// 基于数据资产，实例化技能逻辑对象
+	for (int32 i = 0; i < EquippedSkillsData.Num(); ++i)
+	{
+		const USkillDataAsset* DataAsset = EquippedSkillsData[i];
+		
+		if (!DataAsset)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SkillComponent: EquippedSkillsData[%d] is NULL!"), i);
+			continue;
+		}
+
+		if (!DataAsset->SkillLogicClass)
+		{
+			UE_LOG(LogTemp, Error, TEXT("SkillComponent: Skill '%s' has no SkillLogicClass!"), 
+				*DataAsset->SkillName.ToString());
+			continue;
+		}
+
+		FSkillEntry NewEntry;
+		NewEntry.SkillData = DataAsset;
+		NewEntry.SkillInstance = NewObject<UBaseSkill>(this, DataAsset->SkillLogicClass);
+		NewEntry.SkillInstance->Initialize(OwnerCharacter, DataAsset);
+		SkillSlots.Add(NewEntry);
+
+		UE_LOG(LogTemp, Log, TEXT("SkillComponent: Initialized skill[%d]: '%s' (Class: %s)"), 
+			i, 
+			*DataAsset->SkillName.ToString(),
+			*DataAsset->SkillLogicClass->GetName());
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("SkillComponent: BeginPlay complete. Total skills in SkillSlots: %d"), 
+		SkillSlots.Num());
 }
 
 // Called every frame
@@ -48,41 +89,46 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    // 更新所有技能的冷却时间
-    for (FSkillEntry& SkillEntry : SkillSlots)
-    {
-        if (SkillEntry.CooldownRemaining > 0.0f)
-        {
-            SkillEntry.CooldownRemaining = FMath::Max(0.0f, SkillEntry.CooldownRemaining - DeltaTime);
-        }
-    }
+	// 更新所有技能的冷却时间
+	for (FSkillEntry& SkillEntry : SkillSlots)
+	{
+		if (SkillEntry.CooldownRemaining > 0.0f)
+		{
+			SkillEntry.CooldownRemaining = FMath::Max(0.0f, SkillEntry.CooldownRemaining - DeltaTime);
+		}
+	}
 
-    // 新增：在 Aiming 状态下更新目标格子
-    if (CurrentState == ESkillState::Aiming && OwnerCharacter)
-    {
-        // 从鼠标位置获取目标格子
-        APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
-        if (PC)
-        {
-            FVector WorldLocation, WorldDirection;
-            PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+	// 新增：在 Aiming 状态下更新目标格子
+	if (CurrentState == ESkillState::Aiming && OwnerCharacter)
+	{
+		// 检查是否是玩家控制的角色（HeroCharacter）
+		if (AHeroCharacter* HeroChar = Cast<AHeroCharacter>(OwnerCharacter))
+		{
+			// 从鼠标位置获取目标格子
+			APlayerController* PC = Cast<APlayerController>(HeroChar->GetController());
+			if (PC)
+			{
+				FVector WorldLocation, WorldDirection;
+				PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
 
-            // 计算鼠标指向的地面位置
-            FVector MouseGroundPos = FMath::LinePlaneIntersection(
-                WorldLocation,
-                WorldLocation + WorldDirection * 10000.f,
-                FVector::ZeroVector,
-                FVector::UpVector
-            );
+				// 计算鼠标指向的地面位置
+				FVector MouseGroundPos = FMath::LinePlaneIntersection(
+					WorldLocation,
+					WorldLocation + WorldDirection * 10000.f,
+					FVector::ZeroVector,
+					FVector::UpVector
+				);
 
-            // 转换为网格坐标
-            if (AGridManager* GridMgr = Cast<AGridManager>(
-                UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass())))
-            {
-                AimingTargetGrid = GridMgr->WorldToGrid(MouseGroundPos);
-            }
-        }
-    }
+				// 转换为网格坐标
+				if (AGridManager* GridMgr = Cast<AGridManager>(
+					UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass())))
+				{
+					AimingTargetGrid = GridMgr->WorldToGrid(MouseGroundPos);
+				}
+			}
+		}
+		// ✅ 对于 AI 控制的角色（EnemyCharacter），目标格子应该在技能执行时由 AI 设置
+	}
 }
 
 
@@ -110,10 +156,13 @@ void USkillComponent::CancelAiming()
     {
         CurrentState = ESkillState::Idle;
         AimingSkillIndex = -1;
-        if (OwnerCharacter)
+        
+        // 只有 HeroCharacter 才有范围指示器
+        if (AHeroCharacter* HeroChar = Cast<AHeroCharacter>(OwnerCharacter))
         {
-            OwnerCharacter->HideRangeIndicators();
+            HeroChar->HideRangeIndicators();
         }
+        
         UE_LOG(LogTemp, Log, TEXT("SkillComponent: Canceled Aiming mode"));
     }
 }
@@ -151,9 +200,10 @@ void USkillComponent::TryConfirmSkill()
     CurrentCastingSkillIndex = AimingSkillIndex;
     AimingSkillIndex = -1;
 
-    if (OwnerCharacter)
+    // 只有 HeroCharacter 才有范围指示器
+    if (AHeroCharacter* HeroChar = Cast<AHeroCharacter>(OwnerCharacter))
     {
-        OwnerCharacter->HideRangeIndicators();
+        HeroChar->HideRangeIndicators();
     }
 
     // 立即执行技能（每个 Effect 自己控制延迟）

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GridTactics/BT/EnemyAIConfig.h"
 #include "EnemyCharacter.generated.h"
 
 class UGridMovementComponent;
@@ -27,7 +28,14 @@ public:
     UGridMovementComponent* GetGridMovementComponent() const { return GridMovementComponent; }
     USkillComponent* GetSkillComponent() const { return SkillComponent; }
     UAttributesComponent* GetAttributesComponent() const { return AttributesComponent; }
-    
+
+    /** AI 配置组件 */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+    TObjectPtr<UEnemyAIConfig> AIConfig;
+
+    UFUNCTION(BlueprintPure, Category = "AI")
+    UEnemyAIConfig* GetAIConfig() const { return AIConfig; }
+
     UFUNCTION(BlueprintPure, Category = "Animation")
     float GetCurrentActualSpeed() const;
 

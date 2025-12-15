@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "BTService_DetectPlayer.h"
@@ -10,9 +10,11 @@
 UBTService_DetectPlayer::UBTService_DetectPlayer()
 {
 	NodeName = "Detect Player";
-	// ÉèÖÃ·şÎñÃ¿0.5ÃëÔËĞĞÒ»´Î£¬²»ĞèÒªÃ¿Ö¡¶¼¼ì²â
+	// è®¾ç½®æœåŠ¡æ¯0.5ç§’è¿è¡Œä¸€æ¬¡ï¼Œä¸éœ€è¦æ¯å¸§éƒ½æ£€æµ‹
 	Interval = 0.5f;
 	RandomDeviation = 0.1f;
+	
+	UE_LOG(LogTemp, Log, TEXT("BTService_DetectPlayer: Constructor called"));
 }
 
 void UBTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -20,29 +22,49 @@ void UBTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8*
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
 	AAIController* AIController = OwnerComp.GetAIOwner();
-	if (!AIController || !AIController->GetPawn()) return;
+	if (!AIController || !AIController->GetPawn())
+	{
+		UE_LOG(LogTemp, Error, TEXT("BTService_DetectPlayer: No AI Controller or Pawn"));
+		return;
+	}
 
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-	if (!BlackboardComp) return;
+	if (!BlackboardComp)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BTService_DetectPlayer: No Blackboard Component"));
+		return;
+	}
 
-	// ³¢ÊÔ»ñÈ¡Íæ¼Ò½ÇÉ«
+	// å°è¯•è·å–ç©å®¶è§’è‰²
 	ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 	if (!PlayerCharacter)
 	{
-		// Èç¹ûÊÀ½çÖĞÃ»ÓĞÍæ¼Ò£¬Çå¿ÕÄ¿±ê
+		UE_LOG(LogTemp, Warning, TEXT("BTService_DetectPlayer: No player character found in world"));
 		BlackboardComp->ClearValue(TargetActorKey.SelectedKeyName);
 		return;
 	}
 
-	// ¼ì²éÍæ¼ÒÊÇ·ñÔÚË÷µĞ·¶Î§ÄÚ
-	if (FVector::Dist(AIController->GetPawn()->GetActorLocation(), PlayerCharacter->GetActorLocation()) <= DetectionRadius)
+	FVector AILocation = AIController->GetPawn()->GetActorLocation();
+	FVector PlayerLocation = PlayerCharacter->GetActorLocation();
+	float Distance = FVector::Dist(AILocation, PlayerLocation);
+
+	// æ£€æŸ¥ç©å®¶æ˜¯å¦åœ¨ç´¢æ•ŒèŒƒå›´å†…
+	if (Distance <= DetectionRadius)
 	{
-		// ÔÚ·¶Î§ÄÚ£¬½«Íæ¼ÒÉèÖÃÎªÄ¿±ê
 		BlackboardComp->SetValueAsObject(TargetActorKey.SelectedKeyName, PlayerCharacter);
+		
+		UE_LOG(LogTemp, Log, TEXT("BTService_DetectPlayer: Player detected! Distance: %.1f / %.1f"), 
+			Distance, DetectionRadius);
+		UE_LOG(LogTemp, Log, TEXT("  - AI: %s at %s"), 
+			*AIController->GetPawn()->GetName(), *AILocation.ToString());
+		UE_LOG(LogTemp, Log, TEXT("  - Player: %s at %s"), 
+			*PlayerCharacter->GetName(), *PlayerLocation.ToString());
 	}
 	else
 	{
-		// ²»ÔÚ·¶Î§ÄÚ£¬Çå¿ÕÄ¿±ê£¬AI½«¡°Ê§È¥ĞËÈ¤¡±
 		BlackboardComp->ClearValue(TargetActorKey.SelectedKeyName);
+		
+		UE_LOG(LogTemp, Verbose, TEXT("BTService_DetectPlayer: Player out of range. Distance: %.1f / %.1f"), 
+			Distance, DetectionRadius);
 	}
 }

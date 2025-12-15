@@ -28,6 +28,8 @@ AEnemyCharacter::AEnemyCharacter()
 	GridMovementComponent = CreateDefaultSubobject<UGridMovementComponent>(TEXT("GridMovementComponent"));
 	SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("SkillComponent"));
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>(TEXT("AttributesComponent"));
+    // 创建 AI 配置组件
+    AIConfig = CreateDefaultSubobject<UEnemyAIConfig>(TEXT("AIConfig"));
 
 	// 设置AI控制器来默认附身这个Character
 	AIControllerClass = AEnemyAIController::StaticClass();
@@ -48,6 +50,65 @@ void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	UE_LOG(LogTemp, Warning, TEXT("========== EnemyCharacter::BeginPlay: %s =========="), *GetName());
+
+	// 检查组件
+	if (!GridMovementComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: GridMovementComponent is NULL!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: GridMovementComponent OK"));
+	}
+
+	if (!SkillComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: SkillComponent is NULL!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: SkillComponent OK"));
+	}
+
+	if (!AttributesComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: AttributesComponent is NULL!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: AttributesComponent OK"));
+		UE_LOG(LogTemp, Log, TEXT("  - HP: %.1f / %.1f"), 
+			AttributesComponent->GetHP(), AttributesComponent->GetMaxHP());
+		UE_LOG(LogTemp, Log, TEXT("  - Stamina: %.1f / %.1f"), 
+			AttributesComponent->GetStamina(), AttributesComponent->GetMaxStamina());
+	}
+
+	if (!AIConfig)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: AIConfig is NULL!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("EnemyCharacter: AIConfig OK"));
+		UE_LOG(LogTemp, Log, TEXT("  - MinCombatDistance: %.1f"), AIConfig->MinCombatDistance);
+		UE_LOG(LogTemp, Log, TEXT("  - MaxCombatDistance: %.1f"), AIConfig->MaxCombatDistance);
+	}
+
+	// 检查 AI 控制器
+	AEnemyAIController* AIController = Cast<AEnemyAIController>(GetController());
+	if (!AIController)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyCharacter: No AIController possessed! AutoPossessAI = %d"), 
+			(int32)AutoPossessAI);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemyCharacter: AIController possessed successfully: %s"), 
+			*AIController->GetName());
+	}
+
+	// 原有代码...
 	if (HealthBarWidgetClass && HealthBarWidgetComponent)
 	{
 		// 将指定的UI类设置给WidgetComponent
@@ -85,6 +146,7 @@ void AEnemyCharacter::BeginPlay()
 		// 绑定死亡委托
 		AttributesComponent->OnCharacterDied.AddDynamic(this, &AEnemyCharacter::OnDeath);
 	}
+	UE_LOG(LogTemp, Warning, TEXT("========== EnemyCharacter::BeginPlay END =========="));
 }
 
 // Called every frame

@@ -256,10 +256,62 @@ TArray<AActor*> UBaseSkill::GetAffectedActors(FIntPoint TargetGrid) const
     }
     else
     {
-        // 直接使用相对坐标
+        // 修复：敌人角色也需要根据朝向旋转 Pattern
+        FRotator ActorRotation = OwnerCharacter->GetActorRotation();
+        float Yaw = ActorRotation.Yaw;
+        
+        // 将朝向转换为四向方向向量
+        FIntPoint Direction;
+        if (Yaw >= -45.0f && Yaw < 45.0f)
+        {
+            Direction = FIntPoint(1, 0);  // 东 (X+)
+        }
+        else if (Yaw >= 45.0f && Yaw < 135.0f)
+        {
+            Direction = FIntPoint(0, 1);  // 北 (Y+)
+        }
+        else if (Yaw >= 135.0f || Yaw < -135.0f)
+        {
+            Direction = FIntPoint(-1, 0);  // 西 (X-)
+        }
+        else
+        {
+            Direction = FIntPoint(0, -1);  // 南 (Y-)
+        }
+        
+        UE_LOG(LogTemp, Log, TEXT("GetAffectedActors (Enemy): Yaw=%.1f, Direction=%s"), 
+            Yaw, *Direction.ToString());
+        
+        // 旋转 Pattern
         for (const FIntPoint& RelativePos : PatternToUse)
         {
-            WorldGrids.Add(TargetGrid + RelativePos);
+            FIntPoint RotatedPos = FIntPoint::ZeroValue;
+            
+            // 旋转逻辑（基准方向是 X+ (1, 0)）
+            if (Direction.X == 1 && Direction.Y == 0) // 东 (X+), 基准方向
+            {
+                RotatedPos = RelativePos;
+            }
+            else if (Direction.X == -1 && Direction.Y == 0) // 西 (X-), 旋转180度
+            {
+                RotatedPos.X = -RelativePos.X;
+                RotatedPos.Y = -RelativePos.Y;
+            }
+            else if (Direction.X == 0 && Direction.Y == 1) // 北 (Y+), 逆时针旋转90度
+            {
+                RotatedPos.X = -RelativePos.Y;
+                RotatedPos.Y = RelativePos.X;
+            }
+            else if (Direction.X == 0 && Direction.Y == -1) // 南 (Y-), 顺时针旋转90度
+            {
+                RotatedPos.X = RelativePos.Y;
+                RotatedPos.Y = -RelativePos.X;
+            }
+            
+            WorldGrids.Add(TargetGrid + RotatedPos);
+            
+            UE_LOG(LogTemp, Verbose, TEXT("  Pattern %s -> Rotated %s -> World %s"), 
+                *RelativePos.ToString(), *RotatedPos.ToString(), *(TargetGrid + RotatedPos).ToString());
         }
     }
 

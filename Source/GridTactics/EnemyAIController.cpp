@@ -1,5 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "EnemyAIController.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -9,38 +8,60 @@
 AEnemyAIController::AEnemyAIController()
 {
 	BlackboardComponent = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComponent"));
+	
+	UE_LOG(LogTemp, Warning, TEXT("EnemyAIController: Constructor called"));
 }
 
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	if (!BehaviorTree || !BehaviorTree->BlackboardAsset)
+	UE_LOG(LogTemp, Warning, TEXT("EnemyAIController: OnPossess called for %s"), 
+		InPawn ? *InPawn->GetName() : TEXT("NULL"));
+
+	if (!BehaviorTree)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AI Controller for %s is missing BehaviorTree or BlackboardAsset!"), *InPawn->GetName());
+		UE_LOG(LogTemp, Error, TEXT("EnemyAIController: BehaviorTree is NULL! Please set it in BP_EnemyAIController."));
 		return;
 	}
 
-	// ³õÊ¼»¯ºÚ°å
+	if (!BehaviorTree->BlackboardAsset)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EnemyAIController: BlackboardAsset is NULL in BehaviorTree!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("EnemyAIController: BehaviorTree and Blackboard are valid"));
+
+	// åˆå§‹åŒ–é»‘æ¿
 	UBlackboardComponent* BlackboardComp = BlackboardComponent.Get();
 	if (UseBlackboard(BehaviorTree->BlackboardAsset, BlackboardComp))
 	{
 		BlackboardComponent = BlackboardComp;
 
-		// ÔÚ³õÊ¼»¯³É¹¦ºó£¬ÉèÖÃ³õÊ¼Öµ£¬½«AIµÄ³öÉúÎ»ÖÃÉèÎªÑ²ÂßÖÐÐÄ
+		// è®¾ç½®åˆå§‹å€¼
 		BlackboardComponent->SetValueAsVector("PatrolCenter", InPawn->GetActorLocation());
-		// Ò²¿ÉÒÔÔÚÕâÀïÉèÖÃÆäËû³õÊ¼Öµ£¬ÀýÈç SelfActor
 		BlackboardComponent->SetValueAsObject("SelfActor", InPawn);
 
-		// ÔËÐÐÐÐÎªÊ÷
-		if (!RunBehaviorTree(BehaviorTree))
+		UE_LOG(LogTemp, Warning, TEXT("EnemyAIController: Blackboard initialized successfully"));
+		UE_LOG(LogTemp, Log, TEXT("  - PatrolCenter: %s"), *InPawn->GetActorLocation().ToString());
+
+		// è¿è¡Œè¡Œä¸ºæ ‘
+		if (RunBehaviorTree(BehaviorTree))
 		{
-			UE_LOG(LogTemp, Error, TEXT("AI Controller for %s failed to RunBehaviorTree!"), *InPawn->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("EnemyAIController: BehaviorTree started successfully for %s"), 
+				*InPawn->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("EnemyAIController: Failed to run BehaviorTree for %s"), 
+				*InPawn->GetName());
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("AI Controller for %s failed to UseBlackboard!"), *InPawn->GetName());
+		UE_LOG(LogTemp, Error, TEXT("EnemyAIController: Failed to UseBlackboard for %s"), 
+			*InPawn->GetName());
 	}
 }
 
