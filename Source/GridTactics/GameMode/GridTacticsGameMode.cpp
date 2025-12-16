@@ -350,7 +350,15 @@ void AGridTacticsGameMode::OnPlayerDied(AActor* Player)
             false
         );
     }
-    // TODO: 显示失败界面
+    // 延迟显示失败界面（给音效时间播放）
+    FTimerHandle DefeatUITimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(
+        DefeatUITimerHandle,
+        this,
+        &AGridTacticsGameMode::ShowDefeatUI,
+        1.5f, // 1.5秒后显示失败界面
+        false
+    );
 }
 
 // 新增：敌人死亡回调
@@ -683,7 +691,15 @@ void AGridTacticsGameMode::CheckVictoryCondition()
             false
         );
     }
-    // TODO: 显示胜利界面
+    // 延迟显示胜利界面
+    FTimerHandle VictoryUITimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(
+        VictoryUITimerHandle,
+        this,
+        &AGridTacticsGameMode::ShowVictoryUI,
+        2.0f, // 2秒后显示胜利界面
+        false
+    );
 }
 
 void AGridTacticsGameMode::ShowPreparationUI()
@@ -724,6 +740,91 @@ void AGridTacticsGameMode::ShowPreparationUI()
         UE_LOG(LogTemp, Error, TEXT("GameMode: WBP_Preparation blueprint not found at /Game/UI/Playing/WBP_Preparation"));
     }
 }
+
+// 显示胜利界面
+void AGridTacticsGameMode::ShowVictoryUI()
+{
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: PlayerController not found"));
+        return;
+    }
+
+    if (!VictoryWidgetClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: VictoryWidgetClass is not set! Please assign it in BP_GridTacticsGameMode"));
+        return;
+    }
+
+    // 暂停游戏
+    PC->SetPause(true);
+
+    // 显示鼠标
+    PC->bShowMouseCursor = true;
+    PC->bEnableClickEvents = true;
+    PC->bEnableMouseOverEvents = true;
+
+    // 设置输入模式为 UI Only
+    FInputModeUIOnly InputMode;
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    PC->SetInputMode(InputMode);
+
+    // 创建胜利界面
+    GameOverWidget = CreateWidget<UUserWidget>(PC, VictoryWidgetClass);
+    if (GameOverWidget)
+    {
+        GameOverWidget->AddToViewport(100); // 最高 Z Order
+        UE_LOG(LogTemp, Log, TEXT("GameMode: Victory UI displayed"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: Failed to create victory widget"));
+    }
+}
+
+// 显示失败界面
+void AGridTacticsGameMode::ShowDefeatUI()
+{
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: PlayerController not found"));
+        return;
+    }
+
+    if (!DefeatWidgetClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: DefeatWidgetClass is not set! Please assign it in BP_GridTacticsGameMode"));
+        return;
+    }
+
+    // 暂停游戏
+    PC->SetPause(true);
+
+    // 显示鼠标
+    PC->bShowMouseCursor = true;
+    PC->bEnableClickEvents = true;
+    PC->bEnableMouseOverEvents = true;
+
+    // 设置输入模式为 UI Only
+    FInputModeUIOnly InputMode;
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    PC->SetInputMode(InputMode);
+
+    // 创建失败界面
+    GameOverWidget = CreateWidget<UUserWidget>(PC, DefeatWidgetClass);
+    if (GameOverWidget)
+    {
+        GameOverWidget->AddToViewport(100); // 最高 Z Order
+        UE_LOG(LogTemp, Log, TEXT("GameMode: Defeat UI displayed"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameMode: Failed to create defeat widget"));
+    }
+}
+
 
 APawn* AGridTacticsGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform)
 {

@@ -127,7 +127,7 @@ void USkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 				}
 			}
 		}
-		// ✅ 对于 AI 控制的角色（EnemyCharacter），目标格子应该在技能执行时由 AI 设置
+		// 对于 AI 控制的角色（EnemyCharacter），目标格子应该在技能执行时由 AI 设置
 	}
 }
 

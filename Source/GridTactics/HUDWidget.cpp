@@ -414,3 +414,79 @@ USkillComponent* UHUDWidget::GetSkillComponent() const
 {
     return CachedSkillComponent.Get();
 }
+
+// ========================================
+// 技能冷却相关实现
+// ========================================
+
+float UHUDWidget::GetSkillCooldownRemaining(int32 SkillIndex) const
+{
+    if (CachedSkillComponent.IsValid())
+    {
+        return CachedSkillComponent->GetCooldownRemaining(SkillIndex);
+    }
+    return 0.0f;
+}
+
+float UHUDWidget::GetSkillCooldownPercent(int32 SkillIndex) const
+{
+    if (!CachedSkillComponent.IsValid())
+    {
+        return 0.0f;
+    }
+
+    float RemainingTime = CachedSkillComponent->GetCooldownRemaining(SkillIndex);
+    if (RemainingTime <= 0.0f)
+    {
+        return 0.0f;
+    }
+
+    const USkillDataAsset* SkillData = CachedSkillComponent->GetSkillData(SkillIndex);
+    if (!SkillData)
+    {
+        return 0.0f;
+    }
+
+    float TotalCooldown = SkillData->Cooldown;
+    if (TotalCooldown <= 0.0f)
+    {
+        return 0.0f;
+    }
+
+    // 返回剩余百分比（1.0 = 满冷却，0.0 = 冷却完成）
+    return FMath::Clamp(RemainingTime / TotalCooldown, 0.0f, 1.0f);
+}
+
+bool UHUDWidget::IsSkillOnCooldown(int32 SkillIndex) const
+{
+    if (CachedSkillComponent.IsValid())
+    {
+        return CachedSkillComponent->GetCooldownRemaining(SkillIndex) > 0.0f;
+    }
+    return false;
+}
+
+FText UHUDWidget::GetSkillCooldownText(int32 SkillIndex) const
+{
+    if (!CachedSkillComponent.IsValid())
+    {
+        return FText::GetEmpty();
+    }
+
+    float RemainingTime = CachedSkillComponent->GetCooldownRemaining(SkillIndex);
+    
+    if (RemainingTime <= 0.0f)
+    {
+        return FText::GetEmpty();
+    }
+
+    // 格式化为 "3.2s" 或 "12.5s"
+    FNumberFormattingOptions NumberFormat;
+    NumberFormat.MinimumFractionalDigits = 1;
+    NumberFormat.MaximumFractionalDigits = 1;
+
+    return FText::Format(
+        FText::FromString(TEXT("{0}s")),
+        FText::AsNumber(RemainingTime, &NumberFormat)
+    );
+}

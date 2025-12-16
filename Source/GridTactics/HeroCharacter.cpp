@@ -23,6 +23,8 @@
 #include "Engine/World.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/PlayerController.h"
+#include "Sound/SoundBase.h"
+#include "TimerManager.h"
 
 
 // Sets default values
@@ -146,6 +148,22 @@ void AHeroCharacter::BeginPlay()
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: BeginPlay called but no PlayerController assigned yet"));
+	}
+
+	// 新增：绑定受击和死亡事件
+	if (AttributesComponent)
+	{
+		// 绑定受伤委托
+		AttributesComponent->OnDamageTaken.AddDynamic(this, &AHeroCharacter::OnTakeDamage);
+
+		// 绑定死亡委托
+		AttributesComponent->OnCharacterDied.AddDynamic(this, &AHeroCharacter::OnDeath);
+
+		UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Damage and death events bound successfully"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("HeroCharacter: AttributesComponent is NULL! Cannot bind events."));
 	}
 }
 
@@ -497,4 +515,87 @@ void AHeroCharacter::PossessedBy(AController* NewController)
             }
         }
     }
+}
+
+// ========================================
+// 在文件末尾添加受击和死亡处理函数
+// ========================================
+
+void AHeroCharacter::OnTakeDamage(float Damage)
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 设置受击状态（动画蓝图会读取这个变量）
+	bIsHit = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: %s taking damage %.1f"), *GetName(), Damage);
+
+	// 播放受击音效
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			HitSound,
+			GetActorLocation(),
+			1.0f,  // VolumeMultiplier
+			1.0f   // PitchMultiplier
+		);
+
+		UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Playing hit sound"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: HitSound is not configured!"));
+	}
+
+	// 自动重置受击状态（避免卡在受击动画）
+	FTimerHandle HitResetTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		HitResetTimer,
+		[this]()
+		{
+			bIsHit = false;
+			UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Hit reaction ended"));
+		},
+		HitReactionDuration,
+		false
+	);
+}
+
+void AHeroCharacter::OnDeath(AActor* DeadActor)
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 设置死亡状态
+	bIsDead = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("HeroCharacter: %s died!"), *GetName());
+
+	// 播放死亡音效
+	if (DeathSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			DeathSound,
+			GetActorLocation(),
+			1.0f,
+			1.0f
+		);
+
+		UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Playing death sound"));
+	}
+
+	// 禁用输入
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		DisableInput(PC);
+		UE_LOG(LogTemp, Log, TEXT("HeroCharacter: Input disabled"));
+	}
 }

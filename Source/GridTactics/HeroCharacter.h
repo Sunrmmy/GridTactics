@@ -18,6 +18,7 @@ class UGridMovementComponent;
 class USkillDataAsset;
 class UAttributesComponent;
 class APlayerController;
+class USoundBase;
 
 UENUM(BlueprintType)
 enum class ECharacterRootState : uint8
@@ -94,7 +95,19 @@ public:
 	TObjectPtr<UInputAction> IA_Skill_4;
 
 	// ========================================
-	// 公开接口
+	// 动画状态接口（供动画蓝图使用）
+	// ========================================
+
+	/** 是否正在受击 */
+	UFUNCTION(BlueprintPure, Category = "Animation")
+	bool IsHit() const { return bIsHit; }
+
+	/** 是否已经死亡 */
+	UFUNCTION(BlueprintPure, Category = "Animation")
+	bool IsDead() const { return bIsDead; }
+
+	// ========================================
+	// 技能相关接口
 	// ========================================
 	
 	UFUNCTION(BlueprintPure, Category = "Skills")
@@ -137,9 +150,54 @@ protected:
 	// ========================================
 
 	void OnMove(const FInputActionValue& Value);
+	void OnPrimaryAttackPressed();
+	void OnCancelPressed();
 	void OnSkillButtonPressed(int32 SkillIndex);
 	void OnConfirmSkill();
 	void OnCancelSkill();
+
+	// ========================================
+	// 受击和死亡回调
+	// ========================================
+
+	/** 受伤回调（绑定到 AttributesComponent::OnDamageTaken） */
+	UFUNCTION()
+	void OnTakeDamage(float Damage);
+
+	/** 死亡回调（绑定到 AttributesComponent::OnCharacterDied） */
+	UFUNCTION()
+	void OnDeath(AActor* DeadActor);
+
+	// ========================================
+	// 动画状态变量（供动画蓝图读取）
+	// ========================================
+
+	/** 是否正在受击 */
+	UPROPERTY(BlueprintReadOnly, Category = "Animation State")
+	bool bIsHit = false;
+
+	/** 是否已经死亡 */
+	UPROPERTY(BlueprintReadOnly, Category = "Animation State")
+	bool bIsDead = false;
+
+	// ========================================
+	// 音效配置
+	// ========================================
+
+	/** 受击音效 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> HitSound;
+
+	/** 死亡音效 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> DeathSound;
+
+	/** 受击动画持续时间（自动重置 bIsHit） */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	float HitReactionDuration = 0.5f;
+
+
+
 
 	// 技能范围更新相关函数
 	void UpdateAimingDirection();

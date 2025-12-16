@@ -133,9 +133,27 @@ public:
     UFUNCTION(BlueprintPure, Category = "UI|Skills")
     USkillComponent* GetSkillComponent() const;
 
-    /** 新增：刷新技能槽显示 */
+    /** 刷新技能槽显示 */
     UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "UI|Skills")
     void RefreshSkillSlots();
+
+    // 技能冷却相关函数
+
+    /** 获取指定技能槽的冷却剩余时间（秒） */
+    UFUNCTION(BlueprintPure, Category = "UI|Skills")
+    float GetSkillCooldownRemaining(int32 SkillIndex) const;
+
+    /** 获取指定技能槽的冷却百分比（0-1，用于进度条） */
+    UFUNCTION(BlueprintPure, Category = "UI|Skills")
+    float GetSkillCooldownPercent(int32 SkillIndex) const;
+
+    /** 检查指定技能槽是否在冷却中 */
+    UFUNCTION(BlueprintPure, Category = "UI|Skills")
+    bool IsSkillOnCooldown(int32 SkillIndex) const;
+
+    /** 获取指定技能槽的冷却时间文本（如 "3.2s"） */
+    UFUNCTION(BlueprintPure, Category = "UI|Skills")
+    FText GetSkillCooldownText(int32 SkillIndex) const;
 
 protected:
     /** 蓝图事件：通知更新 UI */

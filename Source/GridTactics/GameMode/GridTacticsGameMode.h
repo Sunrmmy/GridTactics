@@ -10,6 +10,7 @@
 class AHeroCharacter;
 class USkillDataAsset;
 class UAudioComponent;
+class UUserWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGamePhaseChanged, EGamePhase, NewPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWaveChanged, int32, CurrentWave, int32, TotalWaves);
@@ -187,6 +188,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Skill Selection")
     void OnPlayerCancelReplace();
 
+    // ========================================
+    // UI 管理（游戏结束界面）
+    // ========================================
+
+    /** 胜利界面 Widget 类 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|GameOver")
+    TSubclassOf<UUserWidget> VictoryWidgetClass;
+
+    /** 失败界面 Widget 类 */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|GameOver")
+    TSubclassOf<UUserWidget> DefeatWidgetClass;
+
 protected:
     /** 切换游戏阶段 */
     void SetGamePhase(EGamePhase NewPhase);
@@ -217,8 +230,14 @@ protected:
     /** 新增：波次完成 */
     void OnWaveComplete();
 
-    // 新增：显示准备界面
+    /** 显示主菜单 */
     void ShowPreparationUI();
+
+    // 显示胜利界面
+    void ShowVictoryUI();
+
+    // 显示失败界面
+    void ShowDefeatUI();
 
     // 覆盖默认生成逻辑
     virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
@@ -252,6 +271,10 @@ private:
     float MusicFadeTargetVolume = 0.0f;
     float MusicFadeDuration = 0.0f;
     bool bIsFadingIn = false;
+
+    /** 缓存游戏结束 Widget 实例 */
+    UPROPERTY()
+    TObjectPtr<UUserWidget> GameOverWidget;
 
     /** 内部音频管理函数 */
     void UpdateMusicFade();
