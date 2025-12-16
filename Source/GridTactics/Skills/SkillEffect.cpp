@@ -3,6 +3,7 @@
 #include "SkillEffect.h"
 #include "GridTactics/GridMovement/GridManager.h"
 #include "GridTactics/AttributesComponent.h"
+#include "BaseSkill.h"
 #include "Kismet/GameplayStatics.h"
 
 bool USkillEffect::Execute_Implementation(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors)
@@ -20,7 +21,6 @@ bool USkillEffect::CanExecute_Implementation(AActor* Instigator, FIntPoint Targe
 
 AGridManager* USkillEffect::GetGridManager(AActor* WorldContextObject) const
 {
-    // 修复：从 WorldContextObject 获取 World
     if (!WorldContextObject)
     {
         UE_LOG(LogTemp, Error, TEXT("SkillEffect::GetGridManager - WorldContextObject is null!"));
@@ -66,4 +66,28 @@ UAttributesComponent* USkillEffect::GetAttributesComponent(AActor* Actor) const
     }
 
     return Actor->FindComponentByClass<UAttributesComponent>();
+}
+
+// 重新检测范围内的目标
+TArray<AActor*> USkillEffect::RecheckAffectedActors(AActor* Instigator, FIntPoint TargetGrid) const
+{
+    TArray<AActor*> AffectedActors;
+
+    // 检查是否有有效的 OwningSkill 引用
+    UBaseSkill* Skill = OwningSkill.Get();
+    if (!Skill)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SkillEffect::RecheckAffectedActors - OwningSkill is invalid! Effect: %s"), 
+            *EffectName.ToString());
+        return AffectedActors;
+    }
+
+    // 使用技能的 GetAffectedActors 方法重新检测
+    AffectedActors = Skill->GetAffectedActors(TargetGrid);
+
+    UE_LOG(LogTemp, Warning, TEXT("SkillEffect::RecheckAffectedActors - Effect '%s' rechecked range, found %d actors"), 
+        *EffectName.ToString(),
+        AffectedActors.Num());
+
+    return AffectedActors;
 }

@@ -178,3 +178,64 @@ void UAttributesComponent::HandleDeath()
 		false
 	);
 }
+
+bool UAttributesComponent::HasModifierForAttribute(EAttributeType Attribute) const
+{
+	for (const FAttributeModifier& Mod : ActiveModifiers)
+	{
+		if (Mod.AttributeToModify == Attribute)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool UAttributesComponent::HasModifierForAttributeAndType(EAttributeType Attribute, EModifierType Type) const
+{
+	for (const FAttributeModifier& Mod : ActiveModifiers)
+	{
+		if (Mod.AttributeToModify == Attribute && Mod.Type == Type)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+TArray<FAttributeModifier> UAttributesComponent::GetModifiersForAttribute(EAttributeType Attribute) const
+{
+	TArray<FAttributeModifier> Result;
+	
+	for (const FAttributeModifier& Mod : ActiveModifiers)
+	{
+		if (Mod.AttributeToModify == Attribute)
+		{
+			Result.Add(Mod);
+		}
+	}
+	
+	return Result;
+}
+
+void UAttributesComponent::RemoveModifiersForAttribute(EAttributeType Attribute)
+{
+	int32 RemovedCount = ActiveModifiers.RemoveAll([Attribute](const FAttributeModifier& Mod)
+	{
+		return Mod.AttributeToModify == Attribute;
+	});
+
+	UE_LOG(LogTemp, Log, TEXT("AttributesComponent: Removed %d modifiers for attribute %d"), 
+		RemovedCount, (int32)Attribute);
+}
+
+void UAttributesComponent::RemoveModifiersForAttributeAndType(EAttributeType Attribute, EModifierType Type)
+{
+	int32 RemovedCount = ActiveModifiers.RemoveAll([Attribute, Type](const FAttributeModifier& Mod)
+	{
+		return Mod.AttributeToModify == Attribute && Mod.Type == Type;
+	});
+
+	UE_LOG(LogTemp, Log, TEXT("AttributesComponent: Removed %d modifiers for attribute %d type %d"), 
+		RemovedCount, (int32)Attribute, (int32)Type);
+}

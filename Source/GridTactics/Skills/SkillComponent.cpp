@@ -195,6 +195,39 @@ void USkillComponent::TryConfirmSkill()
         return;
     }
 
+    // 对于 TargetGrid 类型的技能，验证目标格子是否在 RangePattern 内
+    if (SkillData->TargetType == ESkillTargetType::TargetGrid)
+    {
+        // 获取当前瞄准的目标格子
+        FIntPoint TargetGrid = GetAimingTargetGrid();
+        
+        // 获取技能的有效施法范围
+        TArray<FIntPoint> ValidRangeGrids;
+        
+        if (AHeroCharacter* HeroChar = Cast<AHeroCharacter>(OwnerCharacter))
+        {
+            // 获取玩家角色的技能范围（考虑朝向）
+            ValidRangeGrids = HeroChar->GetSkillRangeInWorld(SkillData->RangePattern);
+        }
+        else
+        {
+            // 对于敌人角色，需要计算范围（可选实现）
+            UE_LOG(LogTemp, Warning, TEXT("SkillComponent: Range validation not implemented for non-HeroCharacter"));
+        }
+        
+        // 检查目标格子是否在有效范围内
+        if (!ValidRangeGrids.Contains(TargetGrid))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("SkillComponent: Target grid %s is NOT in skill range! Cancelling."), 
+                *TargetGrid.ToString());
+            CancelAiming();
+            return;
+        }
+        
+        UE_LOG(LogTemp, Log, TEXT("SkillComponent: Target grid %s is in valid range"), 
+            *TargetGrid.ToString());
+    }
+
     // 进入 Casting 状态
     CurrentState = ESkillState::Casting;
     CurrentCastingSkillIndex = AimingSkillIndex;

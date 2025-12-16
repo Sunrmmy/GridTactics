@@ -235,13 +235,16 @@ float UHUDWidget::GetShieldExtensionPercent() const
     }
 
     float MaxHP = CachedAttributesComponent->GetMaxHP();
-    if (MaxHP <= 0.0f)
+    if (MaxHP <= 100.0f)
     {
         return 0.0f;
     }
 
-    // Shield 占 MaxHP 的比例（用于 Shield 延伸条）
-    return FMath::Clamp(CachedAttributesComponent->GetShield() / MaxHP, 0.0f, 1.0f);
+    float TotalHealth = CachedAttributesComponent->GetHP() + CachedAttributesComponent->GetShield();
+    if (TotalHealth > MaxHP) {
+		return FMath::Clamp((TotalHealth - MaxHP) / MaxHP, 0.0f, 1.0f);
+    }
+	return 0.0f;
 }
 
 float UHUDWidget::GetTotalHealthPercent() const

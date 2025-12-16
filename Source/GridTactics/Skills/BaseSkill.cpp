@@ -91,10 +91,10 @@ bool UBaseSkill::ExecuteSkillEffects()
         return false;
     }
 
-    // 2. 获取受影响的角色（立即计算，供所有 Effect 使用）
+    // 2. 获取受影响的角色（为不需要重新检测的 Effect 提供初始列表）
     TArray<AActor*> AffectedActors = GetAffectedActors(TargetGrid);
 
-    UE_LOG(LogTemp, Log, TEXT("ExecuteSkillEffects: %d effects on %d actors at grid %s"),
+    UE_LOG(LogTemp, Log, TEXT("ExecuteSkillEffects: %d effects on %d actors at grid %s (initial check)"),
         SkillData->SkillEffects.Num(),
         AffectedActors.Num(),
         *TargetGrid.ToString());
@@ -103,6 +103,9 @@ bool UBaseSkill::ExecuteSkillEffects()
     for (USkillEffect* Effect : SkillData->SkillEffects)
     {
         if (!Effect) continue;
+
+        // 设置 Effect 的 OwningSkill 引用（用于重新检测）
+        Effect->OwningSkill = this;
 
         if (!Effect->CanExecute(OwnerCharacter, TargetGrid))
         {
@@ -126,51 +129,68 @@ bool UBaseSkill::ExecuteSkillEffects()
             FTimerHandle TimerHandle;
             FTimerDelegate TimerDelegate;
             
-            // 使用弱引用捕获 Actor 列表
+            // ✅ 修改：对于需要重新检测的 Effect，不传递预计算的 Actor 列表
             TArray<TWeakObjectPtr<AActor>> WeakAffectedActors;
-            for (AActor* Actor : AffectedActors)
+            
+            if (!Effect->bRecheckRangeOnExecution)
             {
-                WeakAffectedActors.Add(Actor);
+                // 只有不需要重新检测的 Effect 才使用预计算的列表
+                for (AActor* Actor : AffectedActors)
+                {
+                    WeakAffectedActors.Add(Actor);
+                }
             }
             
             TWeakObjectPtr<AActor> WeakOwner(OwnerCharacter);
+            TWeakObjectPtr<USkillEffect> WeakEffect(Effect);  // ✅ 捕获 Effect 的弱引用
             
-            TimerDelegate.BindLambda([Effect, WeakOwner, TargetGrid, WeakAffectedActors]()
+            TimerDelegate.BindLambda([WeakEffect, WeakOwner, TargetGrid, WeakAffectedActors]()
             {
-                // 检查施法者是否仍然有效
+                USkillEffect* Effect = WeakEffect.Get();
                 AActor* Owner = WeakOwner.Get();
+                
                 if (!Effect || !Owner)
                 {
-                    UE_LOG(LogTemp, Warning, TEXT("Effect execution cancelled - owner destroyed"));
+                    UE_LOG(LogTemp, Warning, TEXT("Effect execution cancelled - owner or effect destroyed"));
                     return;
                 }
                 
-                // 过滤出仍然有效的目标
                 TArray<AActor*> ValidActors;
-                for (const TWeakObjectPtr<AActor>& WeakActor : WeakAffectedActors)
+                
+                if (Effect->bRecheckRangeOnExecution)
                 {
-                    if (AActor* Actor = WeakActor.Get())
+                    // ✅ 延迟检测：传递空列表，让 Effect 自己通过 RecheckAffectedActors 重新检测
+                    UE_LOG(LogTemp, Log, TEXT("  Effect '%s' will recheck range on execution (delay: %.2fs)"),
+                        *Effect->EffectName.ToString(), Effect->ExecutionDelay);
+                }
+                else
+                {
+                    // 过滤出仍然有效的目标（使用预计算的列表）
+                    for (const TWeakObjectPtr<AActor>& WeakActor : WeakAffectedActors)
                     {
-                        ValidActors.Add(Actor);
+                        if (AActor* Actor = WeakActor.Get())
+                        {
+                            ValidActors.Add(Actor);
+                        }
                     }
                 }
                 
                 Effect->Execute(Owner, TargetGrid, ValidActors);
                 
-                UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed after delay with %d/%d valid targets"),
-                    *Effect->EffectName.ToString(), 
-                    ValidActors.Num(), 
-                    WeakAffectedActors.Num());
+                UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed after %.2fs delay"),
+                    *Effect->EffectName.ToString(), Effect->ExecutionDelay);
             });
 
             World->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, Effect->ExecutionDelay, false);
 
-            UE_LOG(LogTemp, Log, TEXT("  Effect '%s' scheduled with %.2fs delay"),
-                *Effect->EffectName.ToString(), Effect->ExecutionDelay);
+            UE_LOG(LogTemp, Log, TEXT("  Effect '%s' scheduled with %.2fs delay (Recheck: %s)"),
+                *Effect->EffectName.ToString(), 
+                Effect->ExecutionDelay,
+                Effect->bRecheckRangeOnExecution ? TEXT("YES") : TEXT("NO"));
         }
         else
         {
-            // 立即执行
+            // 立即执行（使用预计算的列表）
             Effect->Execute(OwnerCharacter, TargetGrid, AffectedActors);
             UE_LOG(LogTemp, Log, TEXT("  Effect '%s' executed immediately"),
                 *Effect->EffectName.ToString());

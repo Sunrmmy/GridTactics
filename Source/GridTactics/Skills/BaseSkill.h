@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -16,57 +16,58 @@ UCLASS(Blueprintable, BlueprintType, Abstract)
 class GRIDTACTICS_API UBaseSkill : public UObject
 {
     GENERATED_BODY()
-
+    // å…è®¸ SkillEffect è®¿é—® GetAffectedActors
+    friend class USkillEffect;
 public:
-    // ³õÊ¼»¯¼¼ÄÜ£¬ÓÉ SkillComponent µ÷ÓÃ
+    // åˆå§‹åŒ–æŠ€èƒ½ï¼Œç”± SkillComponent è°ƒç”¨
     virtual void Initialize(ACharacter* InOwner, const USkillDataAsset* InSkillData);
 
-    // ¼ì²é¼¼ÄÜÊÇ·ñ¿ÉÒÔ±»¼¤»î
-    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")  // ÔÊĞíÀ¶Í¼×ÓÀàÑ¡ÔñĞÔµØ¸²¸Ç£¨Override£©
+    // æ£€æŸ¥æŠ€èƒ½æ˜¯å¦å¯ä»¥è¢«æ¿€æ´»
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")  // å…è®¸è“å›¾å­ç±»é€‰æ‹©æ€§åœ°è¦†ç›–ï¼ˆOverrideï¼‰
     bool CanActivate();
-    // ×÷Îª BlueprintNativeEventµÄC++Ä¬ÈÏÊµÏÖ
+    // ä½œä¸º BlueprintNativeEventçš„C++é»˜è®¤å®ç°
     virtual bool CanActivate_Implementation();
 
-    // ¼¤»î¼¼ÄÜ
+    // æ¿€æ´»æŠ€èƒ½
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Skill")
     void Activate();
     virtual void Activate_Implementation();
 
 protected:
     // ========================================
-    // Effect ÏµÍ³ºËĞÄº¯Êı
+    // Effect ç³»ç»Ÿæ ¸å¿ƒå‡½æ•°
     // ========================================
 
     /**
-     * Ö´ĞĞ¼¼ÄÜµÄËùÓĞ Effect
-     * @return ÊÇ·ñÖÁÉÙÓĞÒ»¸ö Effect ³É¹¦Ö´ĞĞ
+     * æ‰§è¡ŒæŠ€èƒ½çš„æ‰€æœ‰ Effect
+     * @return æ˜¯å¦è‡³å°‘æœ‰ä¸€ä¸ª Effect æˆåŠŸæ‰§è¡Œ
      */
     UFUNCTION(BlueprintCallable, Category = "Skill")
     virtual bool ExecuteSkillEffects();
 
     /**
-     * »ñÈ¡Ä¿±êÍø¸ñ×ø±ê£¨¸ù¾İ TargetType£©
-     * @return Ä¿±ê¸ñ×Ó×ø±ê
+     * è·å–ç›®æ ‡ç½‘æ ¼åæ ‡ï¼ˆæ ¹æ® TargetTypeï¼‰
+     * @return ç›®æ ‡æ ¼å­åæ ‡
      */
     UFUNCTION(BlueprintPure, Category = "Skill")
     virtual FIntPoint GetTargetGrid() const;
 
     /**
-     * »ñÈ¡ÊÜÓ°ÏìµÄ½ÇÉ«ÁĞ±í
-     * @param TargetGrid Ä¿±ê¸ñ×Ó
-     * @return ÊÜÓ°ÏìµÄ½ÇÉ«Êı×é
+     * è·å–å—å½±å“çš„è§’è‰²åˆ—è¡¨
+     * @param TargetGrid ç›®æ ‡æ ¼å­
+     * @return å—å½±å“çš„è§’è‰²æ•°ç»„
      */
     UFUNCTION(BlueprintCallable, Category = "Skill")
     virtual TArray<AActor*> GetAffectedActors(FIntPoint TargetGrid) const;
 
     /**
-     * »ñÈ¡ GridMovementComponent£¨»º´æÓÅ»¯£©
+     * è·å– GridMovementComponentï¼ˆç¼“å­˜ä¼˜åŒ–ï¼‰
      */
     UFUNCTION(BlueprintPure, Category = "Skill")
     UGridMovementComponent* GetGridMovementComponent() const;
 
     // ========================================
-    // ×é¼şÒıÓÃ
+    // ç»„ä»¶å¼•ç”¨
     // ========================================
 
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
@@ -78,7 +79,7 @@ protected:
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
     TObjectPtr<USkillComponent> OwningComponent;
 
-    // Ìí¼ÓÒ»¸ö»º´æµÄÊôĞÔ×é¼şÖ¸Õë£¬±ÜÃâÖØ¸´²éÕÒ
+    // æ·»åŠ ä¸€ä¸ªç¼“å­˜çš„å±æ€§ç»„ä»¶æŒ‡é’ˆï¼Œé¿å…é‡å¤æŸ¥æ‰¾
     UPROPERTY(BlueprintReadOnly, Category = "Skill")
     TObjectPtr<UAttributesComponent> AttributesComp;
 };

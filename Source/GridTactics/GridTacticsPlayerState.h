@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -16,14 +16,15 @@ enum class EAttributeType : uint8
 	MPRecoveryRate,
 	StaminaRecoveryRate,
 	Armor,
-	MoveSpeed
+	MoveSpeed,
+	Shield,
 };
 
 UENUM(BlueprintType)
 enum class EModifierType : uint8
 {
-	Additive,      // ¼Ó·¨
-	Multiplicative // ³Ë·¨
+	Additive,      // åŠ æ³•
+	Multiplicative // ä¹˜æ³•
 };
 
 USTRUCT(BlueprintType)
@@ -44,7 +45,7 @@ struct FAttributeModifier
 	float Value;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Duration; // ³ÖÐøÊ±¼ä£¬<= 0 ±íÊ¾ÓÀ¾Ã
+	float Duration; // æŒç»­æ—¶é—´ï¼Œ<= 0 è¡¨ç¤ºæ°¸ä¹…
 
 	float TimeRemaining;
 
@@ -65,8 +66,8 @@ class GRIDTACTICS_API AGridTacticsPlayerState : public APlayerState
 public:
 	AGridTacticsPlayerState();
 
-	// ÊôÐÔ¶¨Òå¡¢ÐÞ¸ÄÊôÐÔº¯Êý È«²¿Ç¨ÒÆµ½ AttributesComponent
-	// »ñÈ¡ÊôÐÔAttributes		
+	// å±žæ€§å®šä¹‰ã€ä¿®æ”¹å±žæ€§å‡½æ•° å…¨éƒ¨è¿ç§»åˆ° AttributesComponent
+	// èŽ·å–å±žæ€§Attributes		
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	float GetHP() const;
 	UFUNCTION(BlueprintCallable, Category = "Attributes")

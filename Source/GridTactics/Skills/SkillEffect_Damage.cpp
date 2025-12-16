@@ -5,6 +5,9 @@
 USkillEffect_Damage::USkillEffect_Damage()
 {
     EffectName = FText::FromString(TEXT("Damage"));
+    
+    // 默认启用实时范围检测（针对延迟伤害）
+    bRecheckRangeOnExecution = true;
 }
 
 bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint TargetGrid, const TArray<AActor*>& AffectedActors)
@@ -15,11 +18,26 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
         return false;
     }
 
-    UE_LOG(LogTemp, Log, TEXT("SkillEffect_Damage: Processing %d affected actors"), AffectedActors.Num());
+    // 如果启用了实时检测，则重新获取范围内的目标
+    TArray<AActor*> TargetsToHit;
+    
+    if (bRecheckRangeOnExecution && ExecutionDelay > 0.0f)
+    {
+        // 重新检测当前在范围内的目标
+        TargetsToHit = RecheckAffectedActors(Instigator, TargetGrid);
+        UE_LOG(LogTemp, Warning, TEXT("SkillEffect_Damage: Rechecked range, found %d targets (was %d at cast time)"), 
+            TargetsToHit.Num(), AffectedActors.Num());
+    }
+    else
+    {
+        // 使用技能激活时的目标列表
+        TargetsToHit = AffectedActors;
+        UE_LOG(LogTemp, Log, TEXT("SkillEffect_Damage: Using original targets (%d actors)"), AffectedActors.Num());
+    }
 
     int32 DamagedCount = 0;
 
-    for (AActor* Target : AffectedActors)
+    for (AActor* Target : TargetsToHit)
     {
         // 添加有效性检查
         if (!IsValid(Target))
@@ -53,15 +71,22 @@ bool USkillEffect_Damage::Execute_Implementation(AActor* Instigator, FIntPoint T
         TargetAttrs->ApplyDamage(FinalDamage);
         DamagedCount++;
 
-        UE_LOG(LogTemp, Log, TEXT("SkillEffect_Damage: Dealt %.1f damage to %s"), FinalDamage, *Target->GetName());
+        UE_LOG(LogTemp, Warning, TEXT("SkillEffect_Damage: Dealt %.1f damage to %s (Delay: %.2fs, Recheck: %s)"), 
+            FinalDamage, 
+            *Target->GetName(),
+            ExecutionDelay,
+            bRecheckRangeOnExecution ? TEXT("YES") : TEXT("NO"));
     }
 
-    // 修复：即使没有造成伤害，也返回 true（技能本身执行成功）
-    // 只有在技术性错误时才返回 false
-    if (AffectedActors.Num() == 0)
+    if (TargetsToHit.Num() == 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("SkillEffect_Damage: No targets in range"));
+        UE_LOG(LogTemp, Warning, TEXT("SkillEffect_Damage: No targets in range at execution time"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("SkillEffect_Damage: Successfully damaged %d/%d targets"), 
+            DamagedCount, TargetsToHit.Num());
     }
 
-    return true;  // 技能执行成功，即使没有命中目标
+    return true;
 }

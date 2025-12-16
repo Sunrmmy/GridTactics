@@ -8,13 +8,10 @@
 
 class AActor;
 class AGridManager;
+class UBaseSkill;  // ✅ 前向声明
 
 /**
  * 技能效果基类 - 所有效果的抽象接口
- * 特点：
- * - EditInlineNew：可在 DataAsset 中实例化
- * - Blueprintable：支持蓝图扩展
- * - 网络友好：预留 Authority 检查
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, CollapseCategories)
 class GRIDTACTICS_API USkillEffect : public UObject
@@ -26,7 +23,7 @@ public:
      * 执行效果（核心接口）
      * @param Instigator 施法者
      * @param TargetGrid 目标网格坐标
-     * @param AffectedActors 受影响的角色列表（由技能系统计算）
+     * @param AffectedActors 受影响的角色列表（如果 bRecheckRangeOnExecution=true 则为空）
      * @return 是否执行成功
      */
     UFUNCTION(BlueprintNativeEvent, Category = "Skill Effect")
@@ -35,7 +32,6 @@ public:
 
     /**
      * 验证是否可以执行
-     * @return 是否可以执行
      */
     UFUNCTION(BlueprintNativeEvent, Category = "Skill Effect")
     bool CanExecute(AActor* Instigator, FIntPoint TargetGrid) const;
@@ -57,12 +53,26 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Network")
     bool bServerOnly = true;
 
+    // ✅ 新增：是否在执行时重新检测范围
+    /** 
+     * 是否在效果执行时重新检测范围内的目标（适用于延迟伤害）
+     * - true: 执行时实时检测范围（精确但有性能开销）
+     * - false: 使用技能激活时的目标列表（快速但可能不精确）
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Timing", 
+        meta = (EditCondition = "ExecutionDelay > 0.0"))
+    bool bRecheckRangeOnExecution = false;
+
+    // ✅ 新增：技能引用（由 BaseSkill 设置，用于重新检测范围）
+    UPROPERTY()
+    TWeakObjectPtr<UBaseSkill> OwningSkill;
+
 protected:
     // ========================================
-    // 辅助函数（供子类使用）
+    // 辅助函数
     // ========================================
 
-    /** 获取 GridManager（需要传入 Instigator 以获取 World） */
+    /** 获取 GridManager */
     UFUNCTION(BlueprintPure, Category = "Skill Effect")
     AGridManager* GetGridManager(AActor* WorldContextObject) const;
 
@@ -73,4 +83,14 @@ protected:
     /** 获取角色的 AttributesComponent */
     UFUNCTION(BlueprintPure, Category = "Skill Effect")
     class UAttributesComponent* GetAttributesComponent(AActor* Actor) const;
+
+    // 新增：重新检测范围内的目标
+    /**
+     * 重新检测当前在范围内的目标（供延迟效果使用）
+     * @param Instigator 施法者
+     * @param TargetGrid 目标格子
+     * @return 当前在范围内的目标列表
+     */
+    UFUNCTION(BlueprintCallable, Category = "Skill Effect")
+    TArray<AActor*> RecheckAffectedActors(AActor* Instigator, FIntPoint TargetGrid) const;
 };

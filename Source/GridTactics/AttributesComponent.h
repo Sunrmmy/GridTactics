@@ -80,6 +80,26 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnDamageTaken OnDamageTaken;
 
+	// 新增：检查是否已有特定属性的修改器
+	UFUNCTION(BlueprintPure, Category = "Attributes")
+	bool HasModifierForAttribute(EAttributeType Attribute) const;
+
+	// 新增：检查是否已有特定属性和类型的修改器
+	UFUNCTION(BlueprintPure, Category = "Attributes")
+	bool HasModifierForAttributeAndType(EAttributeType Attribute, EModifierType Type) const;
+
+	// 新增：获取特定属性的所有修改器（用于调试）
+	UFUNCTION(BlueprintPure, Category = "Attributes")
+	TArray<FAttributeModifier> GetModifiersForAttribute(EAttributeType Attribute) const;
+
+	// 新增：移除特定属性的所有修改器（用于 Buff 刷新）
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void RemoveModifiersForAttribute(EAttributeType Attribute);
+
+	// 新增：移除特定属性和类型的所有修改器
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void RemoveModifiersForAttributeAndType(EAttributeType Attribute, EModifierType Type);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
