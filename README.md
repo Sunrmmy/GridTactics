@@ -4,8 +4,8 @@ Developed with Unreal Engine 5
 
 ## GridTactics 游戏框架与系统架构说明文档
 
-### 1. 项目概述 (Project Overview)
-GridTactics 是一个基于虚幻引擎（Unreal Engine）开发的、以网格为基础的即时战术游戏 DEMO。游戏通过体力限制和技能范围设计来强调策略性，而非传统的回合制。项目采用 C++ 为主要开发语言，并利用虚幻引擎的组件化和数据驱动设计思想，构建了一个模块化、可扩展的游戏框架。
+### 1. 项目概述
+GridTactics 是一个基于虚幻引擎（Unreal Engine 5.5）开发的、以网格为基础的即时战术游戏 DEMO。游戏通过体力限制和技能范围设计来强调策略性，而非传统的回合制。项目采用 C++ 为主要开发语言，并利用虚幻引擎的组件化和数据驱动设计思想，构建了一个模块化、可扩展的游戏框架。
 
 #### 核心特色
 - **数据驱动**：通过 DataAsset 定义技能、AI 行为等，便于策划调整和内容扩展
@@ -15,7 +15,7 @@ GridTactics 是一个基于虚幻引擎（Unreal Engine）开发的、以网格�
 
 ---
 
-### 2. 核心项目框架 (Core Project Framework)
+### 2. 核心项目框架
 项目遵循 Unreal Engine 的标准游戏框架，并在此基础上进行了扩展：
 
 #### 基础框架组件
@@ -71,7 +71,7 @@ GridTactics 是一个基于虚幻引擎（Unreal Engine）开发的、以网格�
 
 - **UConflictResolver**：移动冲突解决器。当多个单位尝试同时移动到同一格子时，由它来裁决谁可以移动
 
-#### 工作流程 (Workflow)
+#### 工作流程
 1. **移动请求**：HeroCharacter 通过输入或 EnemyCharacter 通过 AI 任务，调用 GridMovementComponent::TryMoveOneStep
 2. **合法性检查**：GridMovementComponent 请求 GridManager 检查目标格子是否可行走且未被占用
 3. **执行移动**：如果合法，GridMovementComponent 开始逐帧更新 Actor 的位置和旋转，实现平滑移动
@@ -118,7 +118,7 @@ GridTactics 是一个基于虚幻引擎（Unreal Engine）开发的、以网格�
     - USkillEffect_Teleport：执行传送，支持曼哈顿距离限制
     - USkillEffect_Burn：持续伤害效果
 
-#### 工作流程 (Workflow)
+#### 工作流程
 1. **输入**：玩家按下技能键，调用 SkillComponent::TryStartAiming
 2. **瞄准**：SkillComponent 进入 Aiming 状态。HeroCharacter 在 Tick 中调用 UpdateAimingDirection，显示技能范围指示器
 3. **确认**：玩家点击鼠标，调用 SkillComponent::TryConfirmSkill
@@ -153,7 +153,7 @@ AI 系统基于虚幻引擎标准的行为树 (Behavior Tree) 和黑板 (Blackbo
 - **黑板 (Blackboard)**：AI 的「记忆体」，存储关键数据
   - **键 (Keys)**：TargetPlayer (目标玩家), KitingPosition (移动目标点), LastSkillTime (上次技能使用时间)
 
-#### 工作流程 (Workflow)
+#### 工作流程
 1. **检测**：BTService_DetectPlayer 定期索敌，找到玩家后写入黑板
 2. **决策**：行为树根据黑板中的 TargetPlayer 进入战斗分支
 3. **攻击决策**：
@@ -169,11 +169,11 @@ AI 系统基于虚幻引擎标准的行为树 (Behavior Tree) 和黑板 (Blackbo
 ---
 
 ### 6. UI 系统 (UI System)
-UI 系统主要由 UHUDWidget 负责，用于显示玩家的实时状态。
+UI 系统主要由 UHUDWidget 和 UserWidget蓝图类 负责，用于显示玩家和敌人角色的的实时状态和HUD。
 
 #### 核心组件
 
-- **UHUDWidget**：作为 C++ 和 UMG 蓝图之间的桥梁，为 UI 提供数据
+- **UHUDWidget**：专为玩家角色编写，作为玩家HUD的父类，提供便捷的数据获取接口。
   - **数据绑定**：
     - 在 BeginPlay 或 NativeTick 中获取 HeroCharacter 的引用
     - 缓存 AttributesComponent 和 SkillComponent 的指针，避免每帧查找
@@ -182,7 +182,7 @@ UI 系统主要由 UHUDWidget 负责，用于显示玩家的实时状态。
     - 绑定到 SkillComponent 的 OnSkillAdded 和 OnSkillReplaced 委托
     - 当技能发生变化时，自动调用 RefreshSkillSlots (蓝图实现)，实现 UI 的自动刷新
 
-#### 工作流程 (Workflow)
+#### 工作流程
 1. **创建**：HeroCharacter 在 BeginPlay 或 PossessedBy 中创建 UHUDWidget 并添加到视口
 2. **数据获取**：UHUDWidget 在 NativeTick 中持续更新对 AttributesComponent 等组件的引用
 3. **UI 更新**：
